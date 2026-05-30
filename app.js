@@ -1,66 +1,57 @@
 'use strict';
 
 // ════════════════════════════════════════════════════════
-// CONSTANTS & CONFIGURATION
+// MODELS & WORKFLOW CONFIG
 // ════════════════════════════════════════════════════════
 
-const MODEL_PRICING = {
-  'claude-opus':    { input: 0.015,    output: 0.075,   label: 'Claude Opus',    tier: 'premium'   },
-  'claude-sonnet':  { input: 0.003,    output: 0.015,   label: 'Claude Sonnet',  tier: 'standard'  },
-  'claude-haiku':   { input: 0.00025,  output: 0.00125, label: 'Claude Haiku',   tier: 'efficient' },
-  'gpt-4o':         { input: 0.005,    output: 0.015,   label: 'GPT-4o',         tier: 'premium'   },
-  'gpt-4o-mini':    { input: 0.00015,  output: 0.0006,  label: 'GPT-4o Mini',    tier: 'efficient' },
+const MODELS = {
+  'claude-opus':   { label:'Claude Opus',   tier:'premium',   input:0.015,   output:0.075   },
+  'claude-sonnet': { label:'Claude Sonnet', tier:'standard',  input:0.003,   output:0.015   },
+  'claude-haiku':  { label:'Claude Haiku',  tier:'efficient', input:0.00025, output:0.00125 },
+  'gpt-4o':        { label:'GPT-4o',        tier:'premium',   input:0.005,   output:0.015   },
+  'gpt-4o-mini':   { label:'GPT-4o Mini',   tier:'efficient', input:0.00015, output:0.0006  },
 };
 
-const USE_CASES = {
+const WF_CFG = {
   'support-copilot': {
-    label:          'Support Copilot',
-    icon:           '💬',
-    color:          '#6366f1',
-    defaultModel:   'claude-haiku',
-    inputRange:     [140, 310],
-    outputRange:    [55, 130],
-    cacheRate:      0.42,
-    rateWeight:     12,
-    owner:          'team-support',
-    budget:         'support-ops',
-    complexityRange:[0.08, 0.42],
+    name:'Support Copilot', icon:'💬', color:'#6366f1',
+    defaultModel:'claude-haiku', scenarioModel:'claude-opus', optimizedModel:'claude-haiku',
+    inputRange:[140,310], outputRange:[55,130], complexityRange:[0.08,0.40],
+    tickMs:1100, warmupCount:3, scenarioTrigger:5,
+    scenario:'premium-overrouting', policy:'ROUTE-COST-002',
+    autoApplySafe:true,
+    narratives:{
+      detection:'Claude Opus is being used for requests with complexity score < 0.20 — FAQ and greeting classification that does not require frontier reasoning.',
+      action:'Routing policy updated: low-complexity traffic (score < 0.40) redirected to Claude Haiku. Opus retained for escalations and complex multi-turn queries.',
+      tradeoff:'A/B testing shows < 2% difference in user satisfaction on FAQ intent.',
+    },
   },
   'doc-summarizer': {
-    label:          'Document Summarizer',
-    icon:           '📄',
-    color:          '#8b5cf6',
-    defaultModel:   'claude-sonnet',
-    inputRange:     [680, 1300],
-    outputRange:    [180, 360],
-    cacheRate:      0.18,
-    rateWeight:     7,
-    owner:          'team-docs',
-    budget:         'content-ops',
-    complexityRange:[0.30, 0.72],
+    name:'Document Assistant', icon:'📄', color:'#8b5cf6',
+    defaultModel:'claude-sonnet', scenarioModel:'claude-sonnet', optimizedModel:'claude-sonnet',
+    inputRange:[680,1300], outputRange:[180,360], complexityRange:[0.30,0.72],
+    tickMs:1400, warmupCount:3, scenarioTrigger:3,
+    scenario:'prompt-bloat', policy:'DOC-COST-001',
+    autoApplySafe:false,
+    narratives:{
+      detection:'Full document bodies (4,000–6,000 tokens) are being passed as context instead of pre-chunked sections, breaching the 1,500-token policy ceiling.',
+      action:'Input context trimmed to 1,500 tokens. Sliding-window summarization enabled for documents exceeding 2,000 tokens. Output cap set to 300 tokens.',
+      tradeoff:'Summaries may omit tertiary sections. Core content and conclusions are preserved.',
+    },
   },
   'proposal-assistant': {
-    label:          'Proposal Assistant',
-    icon:           '📋',
-    color:          '#ec4899',
-    defaultModel:   'claude-sonnet',
-    inputRange:     [380, 720],
-    outputRange:    [550, 1100],
-    cacheRate:      0.09,
-    rateWeight:     4,
-    owner:          'team-sales',
-    budget:         'sales-enablement',
-    complexityRange:[0.50, 0.92],
+    name:'Proposal Assistant', icon:'📋', color:'#ec4899',
+    defaultModel:'claude-sonnet', scenarioModel:'claude-sonnet', optimizedModel:'claude-sonnet',
+    inputRange:[380,720], outputRange:[550,1100], complexityRange:[0.50,0.92],
+    tickMs:1600, warmupCount:2, scenarioTrigger:3,
+    scenario:'retry-storm', policy:'RETRY-GUARD-001',
+    autoApplySafe:true,
+    narratives:{
+      detection:'Tool call timeout on knowledge-base API triggered a retry loop. Retries multiplied spend with no output value.',
+      action:'Circuit breaker engaged. Workflow paused. Request queued for review. Owner alerted with root-cause summary.',
+      tradeoff:'Workflow paused until manually resumed. Prevents unlimited spend escalation.',
+    },
   },
-};
-
-const THRESHOLDS = {
-  promptBloat:    2100,   // input tokens above which a doc-summarizer req is bloated
-  bloatTrigger:   3,      // consecutive bloated requests before agent fires
-  premiumTrigger: 5,      // consecutive premium-on-simple reqs before agent fires
-  retryBreaker:   3,      // retries before circuit breaker engages
-  maxTableRows:   22,
-  maxAgentEntries:25,
 };
 
 // ════════════════════════════════════════════════════════
@@ -68,585 +59,586 @@ const THRESHOLDS = {
 // ════════════════════════════════════════════════════════
 
 const S = {
-  requests:       [],
-  interventions:  [],
-  metrics: {
-    totalSpend:   0,
-    totalReqs:    0,
-    cacheHits:    0,
-    anomalies:    0,
-    savings:      0,
-    spendByUC:    {},
-    spendByModel: {},
-    reqsByUC:     {},
-  },
-  scenarios: {
-    bloatActive:    false,
-    premiumActive:  false,
-    retryActive:    false,
-  },
-  requestSeq:     1,
-  lastMinReqs:    [],
-  simTimer:       null,
-  startTime:      Date.now(),
+  autoApply: false,
+  workflows: mkAllWF(),
+  requests:  [],
+  alerts:    [],
+  entries:   [],         // agent console entries
+  approvals: new Map(),  // id → approval object
+  metrics: { spend:0, reqs:0, cache:0, alerts:0, savings:0 },
+  reqSeq: 1,
+  minReqs: [],           // timestamps for req/min
 };
 
-Object.keys(USE_CASES).forEach(id => {
-  S.metrics.spendByUC[id]  = 0;
-  S.metrics.reqsByUC[id]   = 0;
-});
+function mkWF() {
+  return {
+    status:'idle', timer:null,
+    reqs:0, spend:0, tickN:0,
+    phase:'idle',         // idle | warmup | scenario | optimized
+    scenarioHits:0, agentFired:false,
+    retryBase:null, retryCount:0,
+    baseline:null,        // {reqs,spend,avgCost} captured before scenario
+    approvalId:null,
+  };
+}
+function mkAllWF() {
+  const o={};
+  Object.keys(WF_CFG).forEach(id => o[id]=mkWF());
+  return o;
+}
 
 // ════════════════════════════════════════════════════════
 // UTILITIES
 // ════════════════════════════════════════════════════════
 
-const rnd  = (lo, hi) => Math.random() * (hi - lo) + lo;
-const rndI = (lo, hi) => Math.floor(rnd(lo, hi + 1));
+const rnd  = (a,b) => Math.random()*(b-a)+a;
+const rndI = (a,b) => Math.floor(rnd(a,b+1));
+const q    = id  => document.getElementById(id);
 
 function calcCost(model, inTok, outTok) {
-  const p = MODEL_PRICING[model];
-  return (inTok / 1000) * p.input + (outTok / 1000) * p.output;
+  const m = MODELS[model];
+  return (inTok/1000)*m.input + (outTok/1000)*m.output;
 }
 
-const fmtMoney = n => {
-  if (n >= 10)  return '$' + n.toFixed(2);
-  if (n >= 0.01) return '$' + n.toFixed(2);
-  return '$' + n.toFixed(4);
+const fmtUSD  = n => n >= 0.01 ? '$'+n.toFixed(2) : '$'+n.toFixed(4);
+const fmtTok  = n => n >= 1000 ? (n/1000).toFixed(1)+'K' : ''+n;
+const fmtTime = d => d.toLocaleTimeString('en-US',{hour12:false});
+const nextId  = () => 'REQ-'+String(S.reqSeq++).padStart(4,'0');
+const nextAP  = () => 'AP-'+Math.floor(Math.random()*9000+1000);
+
+// ════════════════════════════════════════════════════════
+// WORKFLOW ENGINE
+// ════════════════════════════════════════════════════════
+
+const WorkflowEngine = {
+  toggle(id) {
+    const wf = S.workflows[id];
+    if (wf.status === 'paused')                    this.resume(id);
+    else if (wf.status==='idle')                   this.run(id);
+    else                                            this.stop(id);
+  },
+
+  run(id) {
+    const wf=S.workflows[id], cfg=WF_CFG[id];
+    wf.status='running'; wf.phase='warmup';
+    wf.tickN=0; wf.scenarioHits=0; wf.agentFired=false;
+    wf.retryBase=null; wf.retryCount=0;
+    UI.setWFStatus(id,'running');
+    UI.setLive(true);
+    this._schedule(id);
+  },
+
+  stop(id) {
+    const wf=S.workflows[id];
+    clearTimeout(wf.timer); wf.timer=null;
+    wf.status='idle'; wf.phase='idle';
+    UI.setWFStatus(id,'idle');
+    if (!Object.values(S.workflows).some(w=>w.status==='running'||w.status==='anomaly'||w.status==='optimized'))
+      UI.setLive(false);
+  },
+
+  resume(id) {
+    const wf=S.workflows[id];
+    wf.status='optimized'; wf.phase='optimized';
+    UI.setWFStatus(id,'optimized');
+    this._schedule(id);
+  },
+
+  _schedule(id) {
+    const wf=S.workflows[id], cfg=WF_CFG[id];
+    const tick = () => {
+      if (!['running','anomaly','optimized'].includes(wf.status)) return;
+      this._tick(id);
+      wf.timer = setTimeout(tick, rnd(.85,1.3)*cfg.tickMs);
+    };
+    wf.timer = setTimeout(tick, 250);
+  },
+
+  _tick(id) {
+    const wf=S.workflows[id], cfg=WF_CFG[id];
+    wf.tickN++;
+
+    if (cfg.scenario==='retry-storm') { this._tickRetry(id); return; }
+
+    if (wf.phase==='warmup') {
+      Gateway.process(this._normalReq(id));
+      if (wf.tickN >= cfg.warmupCount) {
+        wf.phase='scenario';
+        wf.baseline = { reqs:wf.reqs, spend:wf.spend, avgCost: wf.reqs>0 ? wf.spend/wf.reqs : 0 };
+      }
+      return;
+    }
+    if (wf.phase==='scenario') {
+      const req = this._scenarioReq(id);
+      Gateway.process(req);
+      wf.scenarioHits++;
+      if (wf.scenarioHits >= cfg.scenarioTrigger && !wf.agentFired) {
+        wf.agentFired=true;
+        setTimeout(()=>Agent.fire(id,req), rnd(900,1800));
+      }
+      return;
+    }
+    if (wf.phase==='optimized') {
+      Gateway.process(this._optimizedReq(id));
+    }
+  },
+
+  _tickRetry(id) {
+    const wf=S.workflows[id], cfg=WF_CFG[id];
+    if (wf.phase==='warmup') {
+      Gateway.process(this._normalReq(id));
+      if (wf.tickN >= cfg.warmupCount) {
+        wf.phase='scenario';
+        wf.baseline={ reqs:wf.reqs, spend:wf.spend, avgCost: wf.reqs>0?wf.spend/wf.reqs:0 };
+        wf.retryBase = this._normalReq(id);
+        wf.retryBase.status='retrying'; wf.retryBase.flagged=true;
+        Gateway.process(wf.retryBase);
+      }
+      return;
+    }
+    if (wf.phase==='scenario' && wf.retryBase) {
+      wf.retryCount++;
+      const r = {
+        ...wf.retryBase, id:nextId(), ts:new Date(),
+        retries:wf.retryCount,
+        cost:wf.retryBase.cost*(1+wf.retryCount*.10),
+        status: wf.retryCount >= cfg.scenarioTrigger ? 'circuit' : 'retrying',
+        flagged:true,
+      };
+      Gateway.process(r);
+      if (wf.retryCount >= cfg.scenarioTrigger && !wf.agentFired) {
+        wf.agentFired=true;
+        setTimeout(()=>Agent.fire(id,r), 700);
+      }
+    }
+  },
+
+  _normalReq(id) {
+    const cfg=WF_CFG[id], model=cfg.defaultModel;
+    const inTok=rndI(...cfg.inputRange), outTok=rndI(...cfg.outputRange);
+    const cache=Math.random()<.24;
+    return { id:nextId(), ts:new Date(), wfId:id, model, inTok, outTok,
+      cost: cache?calcCost(model,0,outTok)*.08:calcCost(model,inTok,outTok),
+      latency:rndI(200,1800), retries:0, cache, status:'ok', flagged:false, phase:'normal',
+      complexity:rnd(...cfg.complexityRange) };
+  },
+
+  _scenarioReq(id) {
+    const cfg=WF_CFG[id];
+    if (cfg.scenario==='prompt-bloat') {
+      const inTok=rndI(3700,6300), outTok=rndI(260,470), model=cfg.scenarioModel;
+      return { id:nextId(), ts:new Date(), wfId:id, model, inTok, outTok,
+        cost:calcCost(model,inTok,outTok), latency:rndI(700,2600),
+        retries:0, cache:false, status:'flagged', flagged:true, phase:'scenario',
+        anomaly:'prompt-bloat', complexity:rnd(.30,.72) };
+    }
+    if (cfg.scenario==='premium-overrouting') {
+      const model=cfg.scenarioModel;
+      const inTok=rndI(...cfg.inputRange), outTok=rndI(...cfg.outputRange);
+      return { id:nextId(), ts:new Date(), wfId:id, model, inTok, outTok,
+        cost:calcCost(model,inTok,outTok), latency:rndI(200,700),
+        retries:0, cache:false, status:'flagged', flagged:true, phase:'scenario',
+        anomaly:'premium-overrouting', complexity:rnd(.08,.20) };
+    }
+    return this._normalReq(id);
+  },
+
+  _optimizedReq(id) {
+    const cfg=WF_CFG[id], model=cfg.optimizedModel;
+    if (cfg.scenario==='prompt-bloat') {
+      const inTok=rndI(950,1500), outTok=rndI(160,300);
+      return { id:nextId(), ts:new Date(), wfId:id, model, inTok, outTok,
+        cost:calcCost(model,inTok,outTok), latency:rndI(300,1100),
+        retries:0, cache:Math.random()<.42, status:'optimized', flagged:false, phase:'optimized',
+        complexity:rnd(.30,.72) };
+    }
+    if (cfg.scenario==='premium-overrouting') {
+      const inTok=rndI(...cfg.inputRange), outTok=rndI(...cfg.outputRange);
+      return { id:nextId(), ts:new Date(), wfId:id, model, inTok, outTok,
+        cost:calcCost(model,inTok,outTok), latency:rndI(180,600),
+        retries:0, cache:Math.random()<.38, status:'optimized', flagged:false, phase:'optimized',
+        complexity:rnd(...cfg.complexityRange) };
+    }
+    return this._normalReq(id);
+  },
+
+  activateOptimized(id) {
+    const wf=S.workflows[id], cfg=WF_CFG[id];
+    clearTimeout(wf.timer);
+    if (cfg.scenario==='retry-storm') {
+      wf.status='paused'; wf.phase='optimized';
+      UI.setWFStatus(id,'paused');
+      return;
+    }
+    wf.status='optimized'; wf.phase='optimized';
+    UI.setWFStatus(id,'optimized');
+    this._schedule(id);
+  },
 };
 
-const fmtTok = n => n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n);
-
-const fmtTime = d => d.toLocaleTimeString('en-US', { hour12: false });
-
-const nextId = () => 'REQ-' + String(S.requestSeq++).padStart(4, '0');
-
 // ════════════════════════════════════════════════════════
-// SIMULATION ENGINE
+// GATEWAY
 // ════════════════════════════════════════════════════════
 
-// Build a weighted pool of use-case IDs
-function buildPool() {
-  const pool = [];
-  Object.entries(USE_CASES).forEach(([id, uc]) => {
-    for (let i = 0; i < uc.rateWeight; i++) pool.push(id);
-  });
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
-  }
-  return pool;
-}
+const Gateway = {
+  process(req) {
+    S.requests.unshift(req);
+    if (S.requests.length>200) S.requests.pop();
 
-let _pool = buildPool();
-let _poolIdx = 0;
+    const m=S.metrics;
+    m.spend+=req.cost; m.reqs++;
+    if (req.cache) m.cache++;
+    S.minReqs.push(Date.now());
+    S.minReqs = S.minReqs.filter(t=>Date.now()-t<60000);
 
-function pickUseCase() {
-  if (_poolIdx >= _pool.length) { _pool = buildPool(); _poolIdx = 0; }
-  return _pool[_poolIdx++];
-}
+    const wf=S.workflows[req.wfId];
+    wf.reqs++; wf.spend+=req.cost;
 
-function makeRequest(ucId, overrides = {}) {
-  const uc      = USE_CASES[ucId];
-  const model   = uc.defaultModel;
-  const inTok   = rndI(...uc.inputRange);
-  const outTok  = rndI(...uc.outputRange);
-  const cache   = Math.random() < uc.cacheRate;
-  const cost    = cache ? calcCost(model, 0, outTok) * 0.08 : calcCost(model, inTok, outTok);
+    UI.addReqRow(req);
+    UI.refreshKPIs();
+    UI.refreshWFCard(req.wfId);
+  },
 
-  return {
-    id:          nextId(),
-    ts:          new Date(),
-    ucId,
-    model,
-    inTok,
-    outTok,
-    latency:     rndI(180, 1900),
-    retries:     0,
-    cache,
-    complexity:  rnd(...uc.complexityRange),
-    cost,
-    status:      'ok',
-    flagged:     false,
-    ...overrides,
-  };
-}
+  addAlert(a) {
+    S.alerts = S.alerts.filter(x=>x.id!==a.id);
+    S.alerts.unshift(a);
+    S.metrics.alerts = S.alerts.filter(x=>!x.cleared&&x.type==='crit').length;
+    UI.refreshAlerts();
+    UI.refreshKPIs();
+  },
 
-function tick() {
-  if (!S.simTimer) return; // paused
-  const ucId = pickUseCase();
-
-  let req;
-  if (S.scenarios.bloatActive    && ucId === 'doc-summarizer')    req = makeBloatReq();
-  else if (S.scenarios.premiumActive && ucId === 'support-copilot') req = makePremiumReq();
-  else req = makeRequest(ucId);
-
-  processRequest(req);
-
-  const delay = rnd(700, 1500);
-  S.simTimer = setTimeout(tick, delay);
-}
-
-function startSim() {
-  S.simTimer = setTimeout(tick, 400);
-}
-
-function stopSim() {
-  clearTimeout(S.simTimer);
-  S.simTimer = null;
-}
+  clearAlert(id) {
+    const a=S.alerts.find(x=>x.id===id);
+    if (a) { a.cleared=true; }
+    S.metrics.alerts = S.alerts.filter(x=>!x.cleared&&x.type==='crit').length;
+    UI.refreshAlerts();
+    UI.refreshKPIs();
+  },
+};
 
 // ════════════════════════════════════════════════════════
-// GATEWAY — central request processing
-// ════════════════════════════════════════════════════════
-
-function processRequest(req) {
-  S.requests.unshift(req);
-  if (S.requests.length > 200) S.requests.pop();
-
-  const m = S.metrics;
-  m.totalSpend                += req.cost;
-  m.totalReqs++;
-  m.spendByUC[req.ucId]       = (m.spendByUC[req.ucId]   || 0) + req.cost;
-  m.spendByModel[req.model]   = (m.spendByModel[req.model]|| 0) + req.cost;
-  m.reqsByUC[req.ucId]        = (m.reqsByUC[req.ucId]     || 0) + 1;
-  if (req.cache) m.cacheHits++;
-
-  S.lastMinReqs.push(Date.now());
-  S.lastMinReqs = S.lastMinReqs.filter(t => Date.now() - t < 60000);
-
-  UI.addReqRow(req);
-  UI.refreshKPIs();
-  UI.refreshCharts();
-
-  setTimeout(() => Agent.analyze(req), rnd(900, 2000));
-}
-
-// ════════════════════════════════════════════════════════
-// AGENT — pattern detection + interventions
+// AGENT
 // ════════════════════════════════════════════════════════
 
 const Agent = {
-  bloatStreak:       0,
-  premiumStreak:     0,
-  bloatFired:        false,
-  premiumFired:      false,
-  retryFired:        false,
+  fire(wfId, triggerReq) {
+    const cfg=WF_CFG[wfId], wf=S.workflows[wfId];
+    wf.status='anomaly';
+    UI.setWFStatus(wfId,'anomaly');
+    UI.setPolicyViolated(cfg.policy, true);
 
-  analyze(req) {
-    // Prompt bloat detection
-    if (req.ucId === 'doc-summarizer' && req.inTok > THRESHOLDS.promptBloat) {
-      this.bloatStreak++;
-      if (this.bloatStreak >= THRESHOLDS.bloatTrigger && !this.bloatFired) {
-        this.bloatFired = true;
-        this._onPromptBloat(req);
-      }
-    } else if (req.ucId === 'doc-summarizer') {
-      this.bloatStreak = Math.max(0, this.bloatStreak - 0.5);
+    const entry = this._buildEntry(wfId, triggerReq);
+    if (!entry) return;
+
+    Gateway.addAlert({ id:'A-'+wfId, wfId, type:'crit',
+      title: entry.alertTitle, msg: entry.alertMsg, ts:new Date(), cleared:false });
+
+    // Auto-apply if: it's a safe action AND (global auto-apply ON or it's retry-storm safety)
+    const doAuto = (cfg.autoApplySafe && S.autoApply) || cfg.scenario==='retry-storm';
+
+    if (doAuto) {
+      entry.actionType='autonomous';
+      this._addEntry(entry);
+      setTimeout(()=>this._execute(wfId,entry), 1000);
+    } else {
+      entry.actionType='approval-required';
+      entry.approvalId = nextAP();
+      S.approvals.set(entry.approvalId, { id:entry.approvalId, wfId, entry, status:'pending' });
+      wf.approvalId = entry.approvalId;
+      this._addEntry(entry);
+      UI.showBadge(S.entries.filter(e=>e.actionType==='approval-required'&&e.approved==null).length);
     }
 
-    // Premium over-routing detection
-    if (req.ucId === 'support-copilot' &&
-        MODEL_PRICING[req.model].tier === 'premium' &&
-        req.complexity < 0.35) {
-      this.premiumStreak++;
-      if (this.premiumStreak >= THRESHOLDS.premiumTrigger && !this.premiumFired) {
-        this.premiumFired = true;
-        this._onPremiumOverrouting(req);
-      }
-    } else if (req.ucId === 'support-copilot' && MODEL_PRICING[req.model].tier !== 'premium') {
-      this.premiumStreak = Math.max(0, this.premiumStreak - 0.5);
+    UI.switchTab('agent');
+  },
+
+  approve(apId) {
+    const ap=S.approvals.get(apId);
+    if (!ap||ap.status!=='pending') return;
+    ap.status='approved'; ap.entry.approved=true;
+    UI.updateEntry(ap.entry);
+    this._execute(ap.wfId, ap.entry);
+    UI.hideBadge();
+    Drawer.close();
+  },
+
+  reject(apId) {
+    const ap=S.approvals.get(apId);
+    if (!ap||ap.status!=='pending') return;
+    ap.status='rejected'; ap.entry.approved=false;
+    // Restore workflow to running
+    const wf=S.workflows[ap.wfId];
+    wf.status='running'; wf.phase='scenario';
+    UI.setWFStatus(ap.wfId,'running');
+    UI.updateEntry(ap.entry);
+    UI.hideBadge();
+    UI.setPolicyViolated(WF_CFG[ap.wfId].policy, false);
+    Drawer.close();
+  },
+
+  _execute(wfId, entry) {
+    const cfg=WF_CFG[wfId], wf=S.workflows[wfId];
+    Gateway.clearAlert('A-'+wfId);
+    UI.setPolicyViolated(cfg.policy, false);
+
+    // Applied entry
+    const applied = {
+      id: entry.id+'-applied', type:'applied', ts:new Date(),
+      title: entry.appliedTitle, workflow:cfg.name,
+      lines: entry.appliedLines, comparison: entry.comparison,
+    };
+    this._addEntry(applied);
+
+    S.metrics.savings += entry.projectedSavings;
+
+    wf.baseline = wf.baseline || { reqs:wf.reqs, spend:wf.spend, avgCost:wf.reqs>0?wf.spend/wf.reqs:0 };
+    wf.spendAtOpt = wf.spend;
+    wf.reqsAtOpt  = wf.reqs;
+
+    WorkflowEngine.activateOptimized(wfId);
+    UI.refreshKPIs();
+    setTimeout(()=>UI.refreshExec(), 1800);
+  },
+
+  _addEntry(entry) {
+    S.entries.unshift(entry);
+    UI.addAgentEntry(entry);
+  },
+
+  _buildEntry(wfId, req) {
+    const cfg=WF_CFG[wfId];
+    const s=cfg.scenario;
+
+    if (s==='prompt-bloat') {
+      const avgIn   = rndI(4400,5900);
+      const base    = calcCost('claude-sonnet',950,270);
+      const cur     = calcCost('claude-sonnet',avgIn,360);
+      const daily   = (cur-base)*80;
+      return {
+        id:'AE-bloat-'+Date.now(), type:'anomaly', ts:new Date(),
+        title:'PROMPT BLOAT DETECTED', workflow:cfg.name,
+        alertTitle:'Prompt bloat — Document Assistant',
+        alertMsg:`Input tokens averaging ${fmtTok(avgIn)} vs 1,500 policy ceiling.`,
+        lines:[
+          `${cfg.scenarioTrigger} consecutive requests exceeded policy ceiling.`,
+          `Average input: ${fmtTok(avgIn)} tokens — policy max: 1,500 tokens.`,
+          `Cost per request: ${fmtUSD(cur)} — ${(cur/base).toFixed(1)}× above baseline.`,
+          `Policy violated: DOC-COST-001 (Max $0.08 per summarization request).`,
+        ],
+        suggestedAction:{
+          name:'Context Pruning + Output Cap',
+          desc:'Trim input to 1,500 tokens. Apply sliding-window summarization for long documents.',
+          saving:`${fmtUSD(cur-base)}/request (74% reduction)`,
+          tradeoff:'Summary may omit tertiary sections. Core content preserved.',
+        },
+        comparison:{
+          before:{val:fmtUSD(cur),  sub:`${fmtTok(avgIn)} input tokens`},
+          after: {val:fmtUSD(base), sub:'~1,200 tokens (trimmed)'},
+          label:'Projected daily savings', saving:fmtUSD(daily),
+        },
+        projectedSavings:daily*.3,
+        appliedTitle:'OPTIMIZATION APPLIED — CONTEXT PRUNING',
+        appliedLines:[
+          `Input context trimmed to 1,500 tokens per request.`,
+          `Output cap set to 300 tokens.`,
+          `Per-request cost: ${fmtUSD(cur)} → ${fmtUSD(base)} (74% reduction).`,
+        ],
+      };
     }
-  },
 
-  // ── Prompt Bloat handler ─────────────────────
-  _onPromptBloat(trigger) {
-    S.metrics.anomalies++;
-
-    const avgIn    = rndI(4400, 5900);
-    const baseline = calcCost('claude-sonnet', 950, 270);
-    const current  = calcCost('claude-sonnet', avgIn, 360);
-    const dailyWaste = (current - baseline) * USE_CASES['doc-summarizer'].rateWeight * 60 * 8;
-
-    UI.addAgentEntry({
-      type:     'anomaly',
-      ts:       new Date(),
-      title:    'ANOMALY DETECTED — PROMPT BLOAT',
-      workflow: 'Document Summarizer',
-      reqId:    trigger.id,
-      lines: [
-        `Input token volume exceeded threshold on 3 consecutive requests.`,
-        `Average input size: ${fmtTok(avgIn)} tokens (policy ceiling: 1,500 tokens).`,
-        `Current cost per request: ${fmtMoney(current)} — ${(current / baseline).toFixed(1)}× above baseline.`,
-        `Likely cause: Full document bodies passed as context instead of pre-chunked sections.`,
-        `Estimated daily excess spend at current rate: ${fmtMoney(dailyWaste)}.`,
-      ],
-    });
-
-    setTimeout(() => {
-      const saving = current - baseline;
-
-      UI.addAgentEntry({
-        type:     'recommend',
-        ts:       new Date(),
-        title:    'RECOMMENDATION — CONTEXT PRUNING',
-        workflow: 'Document Summarizer',
-        reqId:    trigger.id,
-        lines: [
-          `Recommended action: Trim input context to 1,500 tokens before model call.`,
-          `Apply sliding-window summarization for documents exceeding 2,000 tokens.`,
-          '',
-          `Expected savings: 74% reduction in per-request cost.`,
-          `After intervention: ${fmtMoney(baseline)}/request (from ${fmtMoney(current)}).`,
-          `Trade-off: Summary may omit tertiary sections. Core content preserved.`,
-          '',
-          `Policy triggered: DOC-COST-001 (Max $0.08 per summarization request)`,
-          `Action type: RECOMMENDATION — requires product team review.`,
-          `Audit entry: #AG-001 · team-docs@company.com notified.`,
+    if (s==='premium-overrouting') {
+      const cheap   = calcCost('claude-haiku',225,90);
+      const prem    = calcCost('claude-opus',225,90);
+      const daily   = (prem-cheap)*5760*.70;
+      return {
+        id:'AE-routing-'+Date.now(), type:'anomaly', ts:new Date(),
+        title:'PREMIUM MODEL OVER-ROUTING', workflow:cfg.name,
+        alertTitle:'Premium over-routing — Support Copilot',
+        alertMsg:`Claude Opus used for low-complexity (< 0.20) FAQ traffic.`,
+        lines:[
+          `Claude Opus used for requests with complexity score < 0.20.`,
+          `Last ${cfg.scenarioTrigger} requests: avg complexity 0.14 (FAQ/greeting classification).`,
+          `Cost per request: ${fmtUSD(prem)} — ${Math.round(prem/cheap)}× more expensive than Claude Haiku.`,
+          `Policy violated: ROUTE-COST-002 (Model must match intent complexity).`,
         ],
-        comparison: {
-          before:     { val: fmtMoney(current),  sub: `${fmtTok(avgIn)} input tokens` },
-          after:      { val: fmtMoney(baseline), sub: '1,500 input tokens' },
-          savings:    fmtMoney(dailyWaste),
-          savingsLbl: 'Daily savings',
+        suggestedAction:{
+          name:'Model Routing Optimization',
+          desc:'Route requests with complexity < 0.40 to Claude Haiku. Retain Opus for complex queries.',
+          saving:`${fmtUSD(prem-cheap)}/request on low-complexity traffic`,
+          tradeoff:'A/B testing shows < 2% difference in user satisfaction on FAQ intent.',
         },
-      });
-
-      S.interventions.unshift({
-        id:         'INT-001',
-        type:       'context-pruning',
-        actionType: 'recommendation',
-        workflow:   'Document Summarizer',
-        ts:         new Date(),
-        savings:    dailyWaste,
-        status:     'recommend',
-        critical:   false,
-      });
-      S.metrics.savings += dailyWaste * 0.5;
-
-      UI.refreshInterventions();
-      UI.refreshExec();
-      UI.refreshKPIs();
-    }, 1600);
-  },
-
-  // ── Premium Over-routing handler ─────────────
-  _onPremiumOverrouting(trigger) {
-    S.metrics.anomalies++;
-
-    const cheapCost   = calcCost('claude-haiku', 220, 90);
-    const premiumCost = calcCost('claude-opus',  220, 90);
-    const ratio       = Math.round(premiumCost / cheapCost);
-    const dailyReqs   = USE_CASES['support-copilot'].rateWeight * 60 * 8;
-    const dailySaving = (premiumCost - cheapCost) * dailyReqs * 0.70;
-
-    UI.addAgentEntry({
-      type:     'anomaly',
-      ts:       new Date(),
-      title:    'ANOMALY DETECTED — PREMIUM MODEL OVER-ROUTING',
-      workflow: 'Support Copilot',
-      reqId:    trigger.id,
-      lines: [
-        `Claude Opus is being used for requests with complexity score < 0.20.`,
-        `Last 8 requests: avg complexity 0.14 (FAQ/greeting classification).`,
-        `Cost per request: ${fmtMoney(premiumCost)} — ${ratio}× more expensive than Claude Haiku.`,
-        `Premium models are appropriate for complex reasoning, not intent detection.`,
-      ],
-    });
-
-    setTimeout(() => {
-      UI.addAgentEntry({
-        type:     'autonomous',
-        ts:       new Date(),
-        title:    'AUTONOMOUS ACTION — MODEL DOWNGRADE',
-        workflow: 'Support Copilot',
-        reqId:    trigger.id,
-        lines: [
-          `Action taken: Routing requests with complexity < 0.40 to Claude Haiku.`,
-          `Claude Opus retained for escalations and complex multi-turn queries.`,
-          '',
-          `Savings applied immediately: ${fmtMoney(premiumCost - cheapCost)}/request on low-complexity traffic.`,
-          `Estimated daily savings: ${fmtMoney(dailySaving)} at current volume.`,
-          `Quality impact: A/B comparison shows <2% difference in user satisfaction.`,
-          '',
-          `Policy triggered: ROUTE-COST-002 (Model must match intent complexity)`,
-          `Action type: AUTONOMOUS — applied immediately per standing policy.`,
-          `Audit entry: #AG-002 · routing-config updated.`,
+        comparison:{
+          before:{val:fmtUSD(prem), sub:'Claude Opus (premium)'},
+          after: {val:fmtUSD(cheap), sub:'Claude Haiku (efficient)'},
+          label:'Estimated daily savings', saving:fmtUSD(daily),
+        },
+        projectedSavings:daily*.3,
+        appliedTitle:'ACTION APPLIED — MODEL ROUTING UPDATED',
+        appliedLines:[
+          `Routing policy updated: complexity < 0.40 → Claude Haiku.`,
+          `Claude Opus retained for complex queries and escalations.`,
+          `Per-request cost: ${fmtUSD(prem)} → ${fmtUSD(cheap)} on low-complexity traffic.`,
         ],
-        comparison: {
-          before:     { val: fmtMoney(premiumCost), sub: 'Claude Opus' },
-          after:      { val: fmtMoney(cheapCost),   sub: 'Claude Haiku' },
-          savings:    fmtMoney(dailySaving),
-          savingsLbl: 'Daily savings',
-        },
-      });
+      };
+    }
 
-      S.scenarios.premiumActive = false;
-      S.interventions.unshift({
-        id:         'INT-002',
-        type:       'model-downgrade',
-        actionType: 'autonomous',
-        workflow:   'Support Copilot',
-        ts:         new Date(),
-        savings:    dailySaving,
-        status:     'applied',
-        critical:   false,
-      });
-      S.metrics.savings += dailySaving;
-
-      UI.refreshInterventions();
-      UI.refreshExec();
-      UI.refreshKPIs();
-    }, 1300);
-  },
-
-  // ── Retry Storm handler ──────────────────────
-  onRetryStorm(retryReq, retryCount) {
-    if (retryCount < THRESHOLDS.retryBreaker || this.retryFired) return;
-    this.retryFired = true;
-    S.metrics.anomalies++;
-
-    const perReqCost  = retryReq.cost;
-    const wasted      = perReqCost * retryCount;
-    const prevented   = perReqCost * (20 - retryCount);
-
-    UI.addAgentEntry({
-      type:     'anomaly',
-      ts:       new Date(),
-      title:    'ANOMALY DETECTED — RETRY STORM',
-      workflow: 'Proposal Assistant',
-      reqId:    retryReq.id,
-      lines: [
-        `Retry count on request ${retryReq.id}: ${retryCount} retries in 45 seconds.`,
-        `Root cause: Tool call timeout on knowledge-base API (avg 12s, threshold 3s).`,
-        `Accumulated cost from retries: ${fmtMoney(wasted)} (${retryCount}× request cost of ${fmtMoney(perReqCost)}).`,
-        `Without intervention, this pattern multiplies spend with no output value.`,
-      ],
-    });
-
-    setTimeout(() => {
-      UI.addAgentEntry({
-        type:     'autonomous',
-        ts:       new Date(),
-        title:    'AUTONOMOUS ACTION — CIRCUIT BREAKER ENGAGED',
-        workflow: 'Proposal Assistant',
-        reqId:    retryReq.id,
-        lines: [
-          `Action taken: Workflow paused. Retry circuit breaker triggered.`,
-          `Fallback: Request queued for manual review. Owner alerted.`,
-          '',
-          `Spend prevented: ${fmtMoney(prevented)} (${20 - retryCount} future retries blocked).`,
-          `Budget protected at scale: ${fmtMoney(prevented * 3)}/day if pattern recurred.`,
-          '',
-          `Root cause: knowledge-base API latency spike — likely upstream degradation.`,
-          `Recommendation: Increase timeout threshold or implement cached fallback.`,
-          '',
-          `Policy triggered: RETRY-GUARD-001 (Max 3 retries per request)`,
-          `Action type: AUTONOMOUS — circuit breaker engaged per standing policy.`,
-          `Audit entry: #AG-003 · owner-proposals@company.com alerted.`,
-          `Workflow status: PAUSED — requires manual restart.`,
+    if (s==='retry-storm') {
+      const per = req.cost, wasted=per*req.retries, prevented=per*(20-req.retries);
+      return {
+        id:'AE-retry-'+Date.now(), type:'anomaly', ts:new Date(),
+        title:'RETRY STORM DETECTED', workflow:cfg.name,
+        alertTitle:'Retry storm — Proposal Assistant',
+        alertMsg:`${req.retries} retries in 45 seconds. Circuit breaker engaging.`,
+        lines:[
+          `Retry count on request ${req.id}: ${req.retries} retries in 45 seconds.`,
+          `Root cause: Tool call timeout on knowledge-base API (avg 12s, threshold 3s).`,
+          `Accumulated cost from retries: ${fmtUSD(wasted)} (${req.retries}× request cost).`,
+          `Policy violated: RETRY-GUARD-001 (Max 3 retries per request).`,
         ],
-        comparison: {
-          before:     { val: `${retryCount} retries`,                sub: fmtMoney(wasted) + ' wasted' },
-          after:      { val: `${THRESHOLDS.retryBreaker} max retries`, sub: 'Circuit breaker active' },
-          savings:    fmtMoney(prevented),
-          savingsLbl: 'Spend prevented',
+        suggestedAction:{
+          name:'Circuit Breaker',
+          desc:'Pause workflow. Queue request for manual review. Alert workflow owner.',
+          saving:`${fmtUSD(prevented)} in prevented retries`,
+          tradeoff:'Workflow paused until manually resumed. Owner notified.',
         },
-      });
-
-      S.scenarios.retryActive = false;
-      S.interventions.unshift({
-        id:         'INT-003',
-        type:       'circuit-breaker',
-        actionType: 'autonomous',
-        workflow:   'Proposal Assistant',
-        ts:         new Date(),
-        savings:    prevented * 3,
-        status:     'applied',
-        critical:   true,
-      });
-      S.metrics.savings += prevented;
-
-      UI.setScenarioStatus('PAUSED: Proposal Assistant circuit breaker engaged. Retries halted.', 'danger');
-      UI.refreshInterventions();
-      UI.refreshExec();
-      UI.refreshKPIs();
-    }, 1100);
+        comparison:{
+          before:{val:`${req.retries} retries`, sub:fmtUSD(wasted)+' wasted'},
+          after: {val:'3 max retries', sub:'Circuit breaker active'},
+          label:'Spend prevented', saving:fmtUSD(prevented),
+        },
+        projectedSavings:prevented,
+        appliedTitle:'CIRCUIT BREAKER ENGAGED',
+        appliedLines:[
+          `Workflow paused. Retry loop halted at ${req.retries} retries.`,
+          `${fmtUSD(prevented)} in future retries prevented.`,
+          `Root cause: knowledge-base API latency spike — likely upstream.`,
+          `Recommendation: Increase timeout threshold or add cached fallback.`,
+          `Workflow status: PAUSED — click "Resume" on the card when ready.`,
+        ],
+      };
+    }
+    return null;
   },
 };
 
 // ════════════════════════════════════════════════════════
-// SCENARIO GENERATORS
+// DRAWER
 // ════════════════════════════════════════════════════════
 
-function makeBloatReq() {
-  const inTok = rndI(3700, 6400);
-  const outTok = rndI(270, 460);
-  const model = 'claude-sonnet';
-  return {
-    id:         nextId(),
-    ts:         new Date(),
-    ucId:       'doc-summarizer',
-    model,
-    inTok,
-    outTok,
-    latency:    rndI(750, 2400),
-    retries:    0,
-    cache:      false,
-    complexity: rnd(0.3, 0.7),
-    cost:       calcCost(model, inTok, outTok),
-    status:     'flagged',
-    flagged:    true,
-  };
-}
-
-function makePremiumReq() {
-  const inTok = rndI(140, 310);
-  const outTok = rndI(55, 130);
-  const model = 'claude-opus';
-  return {
-    id:         nextId(),
-    ts:         new Date(),
-    ucId:       'support-copilot',
-    model,
-    inTok,
-    outTok,
-    latency:    rndI(180, 620),
-    retries:    0,
-    cache:      false,
-    complexity: rnd(0.08, 0.22),
-    cost:       calcCost(model, inTok, outTok),
-    status:     'flagged',
-    flagged:    true,
-  };
-}
-
-// ════════════════════════════════════════════════════════
-// SCENARIOS
-// ════════════════════════════════════════════════════════
-
-const Scenarios = {
-  triggerPromptBloat() {
-    if (S.scenarios.bloatActive) return;
-    Agent.bloatFired  = false;
-    Agent.bloatStreak = 0;
-    S.scenarios.bloatActive = true;
-
-    UI.setScenarioStatus('Scenario active: Prompt Bloat — watching Document Summarizer…', 'warn');
-    UI.addAgentEntry({
-      type: 'info', ts: new Date(),
-      title: 'SCENARIO STARTED — PROMPT BLOAT',
-      lines: [
-        'Document Summarizer is now sending full document bodies without chunking.',
-        'Monitoring for cost threshold breach…',
-      ],
-    });
-
-    setTimeout(() => {
-      if (S.scenarios.bloatActive) {
-        S.scenarios.bloatActive = false;
-        UI.setScenarioStatus('Prompt Bloat scenario complete', 'success');
-      }
-    }, 30000);
+const Drawer = {
+  open(reqId) {
+    const req=S.requests.find(r=>r.id===reqId);
+    if (!req) return;
+    q('drawerTitle').textContent='Request Inspection';
+    q('drawerBody').innerHTML = this._reqHTML(req);
+    q('drawer').classList.add('open');
+    q('drawerScrim').classList.add('show');
   },
 
-  triggerPremiumOverrouting() {
-    if (S.scenarios.premiumActive) return;
-    Agent.premiumFired  = false;
-    Agent.premiumStreak = 0;
-    S.scenarios.premiumActive = true;
-
-    UI.setScenarioStatus('Scenario active: Premium Over-routing — Support Copilot switched to Claude Opus…', 'warn');
-    UI.addAgentEntry({
-      type: 'info', ts: new Date(),
-      title: 'SCENARIO STARTED — PREMIUM OVER-ROUTING',
-      lines: [
-        'Support Copilot now routing all traffic to Claude Opus.',
-        'Monitoring for cost/complexity mismatch…',
-      ],
-    });
+  openApproval(apId) {
+    const ap=S.approvals.get(apId);
+    if (!ap) return;
+    q('drawerTitle').textContent='Agent Recommendation';
+    q('drawerBody').innerHTML = this._apHTML(ap);
+    q('drawer').classList.add('open');
+    q('drawerScrim').classList.add('show');
   },
 
-  triggerRetryStorm() {
-    if (S.scenarios.retryActive) return;
-    Agent.retryFired     = false;
-    S.scenarios.retryActive = true;
-
-    UI.setScenarioStatus('Scenario active: Retry Storm — Proposal Assistant experiencing tool failures…', 'danger');
-    UI.addAgentEntry({
-      type: 'info', ts: new Date(),
-      title: 'SCENARIO STARTED — RETRY STORM',
-      lines: [
-        'Proposal Assistant knowledge-base API timeout triggered.',
-        'Monitoring retry accumulation…',
-      ],
-    });
-
-    // Fire base request then retry sequence
-    const base = makeRequest('proposal-assistant', { status: 'retrying', flagged: true });
-    processRequest(base);
-
-    const delays = [2200, 4000, 5800, 7600, 9400, 11200, 13000, 14800];
-    delays.forEach((delay, idx) => {
-      setTimeout(() => {
-        if (!S.scenarios.retryActive) return;
-        const count = idx + 1;
-        const req = {
-          ...base,
-          id:      nextId(),
-          ts:      new Date(),
-          retries: count,
-          cost:    base.cost * (1 + count * 0.08),
-          status:  count >= THRESHOLDS.retryBreaker ? 'circuit' : 'retrying',
-          flagged: true,
-        };
-
-        S.requests.unshift(req);
-        S.metrics.totalSpend              += req.cost;
-        S.metrics.totalReqs++;
-        S.metrics.spendByUC['proposal-assistant'] += req.cost;
-        S.metrics.reqsByUC['proposal-assistant']  = (S.metrics.reqsByUC['proposal-assistant'] || 0) + 1;
-
-        UI.addReqRow(req);
-        UI.refreshKPIs();
-
-        setTimeout(() => Agent.onRetryStorm(req, count), 600);
-      }, delay);
-    });
+  close() {
+    q('drawer').classList.remove('open');
+    q('drawerScrim').classList.remove('show');
   },
 
-  reset() {
-    stopSim();
+  _reqHTML(req) {
+    const cfg=WF_CFG[req.wfId], m=MODELS[req.model];
+    const policyMax={'doc-summarizer':0.08,'support-copilot':0.05,'proposal-assistant':0.20};
+    const max=policyMax[req.wfId]||0.12;
+    const over=req.cost>max?req.cost-max:0;
 
-    // Reset state
-    S.requests      = [];
-    S.interventions = [];
-    S.metrics = {
-      totalSpend:   0,
-      totalReqs:    0,
-      cacheHits:    0,
-      anomalies:    0,
-      savings:      0,
-      spendByUC:    {},
-      spendByModel: {},
-      reqsByUC:     {},
-    };
-    Object.keys(USE_CASES).forEach(id => {
-      S.metrics.spendByUC[id]  = 0;
-      S.metrics.reqsByUC[id]   = 0;
-    });
-    S.scenarios     = { bloatActive: false, premiumActive: false, retryActive: false };
-    S.requestSeq    = 1;
-    S.lastMinReqs   = [];
+    // Find pending approval for this workflow
+    const ap=[...S.approvals.values()].find(a=>a.wfId===req.wfId&&a.status==='pending');
+    const actionHTML = ap ? `
+      <div class="drawer-section">
+        <h3>Suggested Action</h3>
+        <div class="drawer-action-name">${ap.entry.suggestedAction.name}</div>
+        <div class="drawer-action-desc">${ap.entry.suggestedAction.desc}</div>
+        <div class="drawer-action-saving">💰 ${ap.entry.suggestedAction.saving}</div>
+        <div class="drawer-action-trade">⚖ Trade-off: ${ap.entry.suggestedAction.tradeoff}</div>
+        <div class="drawer-action-btns">
+          <button class="btn-approve" onclick="Agent.approve('${ap.id}')">✓ Approve Optimization</button>
+          <button class="btn-reject"  onclick="Agent.reject('${ap.id}')">✕ Reject</button>
+        </div>
+      </div>` : '';
 
-    // Reset agent counters
-    Agent.bloatStreak  = 0;
-    Agent.premiumStreak = 0;
-    Agent.bloatFired   = false;
-    Agent.premiumFired = false;
-    Agent.retryFired   = false;
+    const diagHTML = req.anomaly ? `
+      <div class="drawer-section">
+        <h3>Agent Diagnosis</h3>
+        <div class="drawer-diagnosis">${this._diag(req)}</div>
+      </div>` : '';
 
-    UI.reset();
-    setTimeout(() => { S.simTimer = true; startSim(); }, 400);
+    return `
+      <div class="drawer-section">
+        <div class="drawer-req-id">${req.id}</div>
+        <div class="drawer-req-meta">
+          <span style="color:${cfg.color}">${cfg.icon} ${cfg.name}</span>
+          <span>${fmtTime(req.ts)}</span>
+        </div>
+        <div class="drawer-req-tags">
+          <span class="model-pill ${m.tier}">${m.label}</span>
+          ${req.cache   ? '<span class="tag-cache">Cached</span>'   : ''}
+          ${req.retries ? `<span class="tag-retry">Retry ×${req.retries}</span>` : ''}
+          ${req.flagged ? '<span class="tag-flagged">⚠ Flagged</span>' : ''}
+        </div>
+      </div>
+      <div class="drawer-section">
+        <h3>Token Breakdown</h3>
+        <div class="drawer-metric"><span class="key">Input tokens</span><span class="${req.inTok>2000?'val-hi':'val-mono'}">${fmtTok(req.inTok)}</span></div>
+        <div class="drawer-metric"><span class="key">Output tokens</span><span class="val-mono">${fmtTok(req.outTok)}</span></div>
+        <div class="drawer-metric"><span class="key">Total tokens</span><span class="val-mono">${fmtTok(req.inTok+req.outTok)}</span></div>
+        ${req.retries?`<div class="drawer-metric"><span class="key">Retries</span><span class="val-hi">×${req.retries}</span></div>`:''}
+      </div>
+      <div class="drawer-section">
+        <h3>Cost Analysis</h3>
+        <div class="drawer-metric"><span class="key">This request</span><span class="${req.cost>max?'val-hi':'val-mono'}">${fmtUSD(req.cost)}</span></div>
+        <div class="drawer-metric"><span class="key">Policy ceiling</span><span class="val-mono">${fmtUSD(max)}</span></div>
+        ${over>0?`<div class="drawer-metric"><span class="key">Overage</span><span class="val-hi">+${fmtUSD(over)} (+${Math.round(over/max*100)}%)</span></div>`:''}
+        <div class="drawer-metric"><span class="key">Model tier</span><span class="tier-${m.tier}">${m.tier}</span></div>
+      </div>
+      ${diagHTML}${actionHTML}`;
+  },
+
+  _apHTML(ap) {
+    const e=ap.entry;
+    return `
+      <div class="drawer-section">
+        <div class="drawer-req-id" style="font-size:14px">${e.title}</div>
+        <div class="drawer-req-meta"><span>${e.workflow}</span><span>${fmtTime(e.ts)}</span></div>
+      </div>
+      <div class="drawer-section">
+        <h3>Detection</h3>
+        ${e.lines.map(l=>`<div class="drawer-diag-line">${l}</div>`).join('')}
+      </div>
+      <div class="drawer-section">
+        <h3>Proposed Action</h3>
+        <div class="drawer-action-name">${e.suggestedAction.name}</div>
+        <div class="drawer-action-desc">${e.suggestedAction.desc}</div>
+        <div class="drawer-action-saving">💰 ${e.suggestedAction.saving}</div>
+        <div class="drawer-action-trade">⚖ Trade-off: ${e.suggestedAction.tradeoff}</div>
+        <div class="drawer-action-btns">
+          <button class="btn-approve" onclick="Agent.approve('${ap.id}')">✓ Approve</button>
+          <button class="btn-reject"  onclick="Agent.reject('${ap.id}')">✕ Reject</button>
+        </div>
+      </div>`;
+  },
+
+  _diag(req) {
+    if (req.anomaly==='prompt-bloat')
+      return `Full document body (${fmtTok(req.inTok)} tokens) sent as context. Policy DOC-COST-001 requires max 1,500 input tokens. Consider chunking documents before sending.`;
+    if (req.anomaly==='premium-overrouting')
+      return `Request complexity score ${req.complexity.toFixed(2)} is below the 0.35 threshold. Claude Opus is ${Math.round(calcCost('claude-opus',225,90)/calcCost('claude-haiku',225,90))}× more expensive than Claude Haiku for the same intent classification task.`;
+    if (req.retries)
+      return `Request entered retry loop after tool call timeout. ${req.retries} retries attempted. Policy RETRY-GUARD-001 limits retries to 3.`;
+    return 'Anomalous cost pattern detected. See agent console for full diagnosis.';
   },
 };
 
@@ -655,352 +647,301 @@ const Scenarios = {
 // ════════════════════════════════════════════════════════
 
 const UI = {
-  // ── KPI refresh ───────────────────────────────
   refreshKPIs() {
-    const m = S.metrics;
-    const reqPerMin = S.lastMinReqs.length;
-    const cacheRate = m.totalReqs > 0 ? Math.round(m.cacheHits / m.totalReqs * 100) : 0;
-    const savPct    = m.totalSpend > 0
-      ? Math.round(m.savings / (m.totalSpend + m.savings) * 100)
-      : 0;
+    const m=S.metrics, rpm=S.minReqs.length;
+    const cacheRate = m.reqs>0 ? Math.round(m.cache/m.reqs*100) : 0;
+    const savPct    = m.spend>0 ? Math.round(m.savings/(m.spend+m.savings)*100) : 0;
+    const alerts    = S.alerts.filter(a=>!a.cleared&&a.type==='crit').length;
 
-    q('kpiTotalSpend').textContent = fmtMoney(m.totalSpend);
-    q('kpiRequests').textContent   = m.totalReqs.toLocaleString();
-    q('kpiAnomalies').textContent  = m.anomalies;
-    q('kpiSavings').textContent    = fmtMoney(m.savings);
-    q('kpiCacheRate').textContent  = cacheRate + '%';
-    q('kpiCacheHits').textContent  = m.cacheHits + ' hits';
-    q('kpiReqRate').textContent    = reqPerMin + ' req/min';
-    q('kpiSavingsPct').textContent = savPct + '% of spend';
-    q('reqCount').textContent      = m.totalReqs + ' total';
-
-    const card = q('kpiAnomalyCard');
-    card.classList.toggle('kpi-alert', m.anomalies > 0);
+    q('kpiSpend').textContent   = fmtUSD(m.spend);
+    q('kpiReqs').textContent    = m.reqs.toLocaleString();
+    q('kpiReqRate').textContent = rpm+' req/min';
+    q('kpiCacheRate').textContent = cacheRate+'% cache';
+    q('kpiAlerts').textContent  = alerts;
+    q('kpiSavings').textContent = fmtUSD(m.savings);
+    q('kpiSavingsPct').textContent = m.savings>0 ? savPct+'% of spend' : '—';
+    q('streamCount').textContent = m.reqs+' requests';
+    q('kpiAlertCard').classList.toggle('has-alert', alerts>0);
   },
 
-  // ── Request table row ─────────────────────────
+  setWFStatus(id, status) {
+    const card=q('card-'+id), dot=q('dot-'+id), badge=q('badge-'+id), btn=q('btn-'+id);
+    card.className='wf-card'+(status!=='idle'?' wf-'+status:'');
+    dot.className ='wf-dot '+status;
+    badge.className='wf-badge '+status;
+    const labels={idle:'IDLE',running:'RUNNING',anomaly:'ANOMALY DETECTED',paused:'PAUSED',optimized:'OPTIMIZED'};
+    const btns  ={idle:'▶ Run Workflow',running:'⏸ Stop',anomaly:'⏸ Stop',paused:'▶ Resume',optimized:'⏸ Stop'};
+    badge.textContent=labels[status]||'IDLE';
+    btn.textContent  =btns[status]||'▶ Run Workflow';
+  },
+
+  refreshWFCard(id) {
+    const wf=S.workflows[id], el=q('stats-'+id);
+    if (!el) return;
+    if (wf.reqs===0){ el.innerHTML='—'; return; }
+    const avg=wf.spend/wf.reqs;
+    el.innerHTML=`<span>${wf.reqs} requests</span><span>${fmtUSD(wf.spend)} total</span><span>avg ${fmtUSD(avg)}/req</span>`;
+  },
+
   addReqRow(req) {
-    const tbody = q('reqTableBody');
+    const tbody=q('reqBody');
+    const emp=tbody.querySelector('.empty-row'); if(emp) emp.remove();
 
-    // Clear idle placeholder
-    const idle = tbody.querySelector('.idle-row');
-    if (idle) idle.remove();
+    const cfg=WF_CFG[req.wfId], m=MODELS[req.model];
+    const cCls=req.cost>.10?'hi':req.cost>.04?'mid':'';
+    const rCls=req.status==='circuit'?'row-crit':req.flagged?'row-warn':req.status==='optimized'?'row-opt':'';
 
-    const uc      = USE_CASES[req.ucId];
-    const pricing = MODEL_PRICING[req.model];
-    const costCls = req.cost > 0.10 ? 'cost-hi' : req.cost > 0.04 ? 'cost-mid' : '';
-    const rowCls  = req.status === 'circuit' ? 'row-crit'
-                  : req.flagged              ? 'row-warn' : '';
+    const stMap={ok:{l:'OK',c:'ok'},flagged:{l:'Flagged',c:'flagged'},retrying:{l:`Retry ${req.retries}`,c:'retrying'},circuit:{l:'Circuit Break',c:'circuit'},optimized:{l:'Optimized',c:'optimized'}};
+    const st=stMap[req.status]||stMap.ok;
 
-    const statusLabel = {
-      ok:      'OK',
-      flagged: 'Flagged',
-      retrying:`Retry ${req.retries}`,
-      circuit: 'Circuit Break',
-      done:    'Intervened',
-    }[req.status] || req.status;
+    const inspBtn=(req.flagged||req.retries>0)?`<button class="inspect-btn" onclick="Drawer.open('${req.id}')">Inspect</button>`:'';
 
-    const tr = document.createElement('tr');
-    tr.className = `req-row new ${rowCls}`;
-    tr.innerHTML = `
+    const tr=document.createElement('tr');
+    tr.className=`req-row new ${rCls}`;
+    if(req.flagged||req.retries>0){ tr.style.cursor='pointer'; tr.onclick=()=>Drawer.open(req.id); }
+    tr.innerHTML=`
       <td class="time-col">${fmtTime(req.ts)}</td>
-      <td><span style="color:${uc.color}" class="uc-badge">${uc.icon} ${uc.label}</span></td>
-      <td><span class="model-pill ${pricing.tier}">${pricing.label}</span></td>
-      <td class="tokens-col">
+      <td><span class="uc-lbl" style="color:${cfg.color}">${cfg.icon} ${cfg.name}</span></td>
+      <td><span class="model-pill ${m.tier}">${m.label}</span></td>
+      <td class="tok-col">
         <span class="tok-in">↑${fmtTok(req.inTok)}</span>
         <span class="tok-out">↓${fmtTok(req.outTok)}</span>
-        ${req.cache   ? '<span class="tag-cache">cached</span>' : ''}
-        ${req.retries ? `<span class="tag-retry">×${req.retries}</span>` : ''}
+        ${req.cache  ?'<span class="tag-cache">cached</span>':''}
+        ${req.retries?`<span class="tag-retry">×${req.retries}</span>`:''}
       </td>
-      <td class="cost-col ${costCls}">${fmtMoney(req.cost)}</td>
-      <td><span class="status-pill ${req.status}">${statusLabel}</span></td>
-    `;
+      <td class="cost-col ${cCls}">${fmtUSD(req.cost)}</td>
+      <td><span class="status-pill ${st.c}">${st.l}</span></td>
+      <td>${inspBtn}</td>`;
 
     tbody.insertBefore(tr, tbody.firstChild);
-    setTimeout(() => tr.classList.remove('new'), 500);
-
-    while (tbody.children.length > THRESHOLDS.maxTableRows) {
-      tbody.removeChild(tbody.lastChild);
-    }
+    setTimeout(()=>tr.classList.remove('new'), 400);
+    while(tbody.children.length>26) tbody.removeChild(tbody.lastChild);
   },
 
-  // ── Agent console entry ───────────────────────
-  addAgentEntry(entry) {
-    const log = q('agentLog');
-
-    // Remove idle placeholder
-    const idle = log.querySelector('.agent-idle');
-    if (idle) idle.remove();
-
-    const typeMap = {
-      anomaly:    { icon: '🔍', label: 'DETECTED',   cls: 't-anomaly'   },
-      recommend:  { icon: '💡', label: 'RECOMMEND',  cls: 't-recommend' },
-      autonomous: { icon: '⚡', label: 'ACTION',     cls: 't-autonomous'},
-      info:       { icon: 'ℹ',  label: 'INFO',       cls: 't-info'      },
-    };
-    const tm = typeMap[entry.type] || typeMap.info;
-
-    const linesHtml = entry.lines.map(l =>
-      l === '' ? '<div class="ae-line ae-spacer"></div>'
-               : `<div class="ae-line">${l}</div>`
-    ).join('');
-
-    let cmpHtml = '';
-    if (entry.comparison) {
-      const c = entry.comparison;
-      cmpHtml = `
-        <div class="comparison">
-          <div class="cmp-col">
-            <div class="cmp-lbl">BEFORE</div>
-            <div class="cmp-val hi">${c.before.val}</div>
-            <div class="cmp-sub">${c.before.sub}</div>
-          </div>
-          <div class="cmp-arrow">→</div>
-          <div class="cmp-col">
-            <div class="cmp-lbl">AFTER</div>
-            <div class="cmp-val lo">${c.after.val}</div>
-            <div class="cmp-sub">${c.after.sub}</div>
-          </div>
-          <div class="cmp-savings">
-            <div class="cmp-savings-lbl">${c.savingsLbl}</div>
-            <div class="cmp-savings-val">${c.savings}</div>
-          </div>
+  refreshAlerts() {
+    const active=S.alerts.filter(a=>!a.cleared);
+    const el=q('alertsList');
+    if(!active.length){ el.innerHTML='<div class="empty-cell" style="padding:18px">No alerts</div>'; return; }
+    el.innerHTML=active.map(a=>`
+      <div class="alert-card ${a.type==='crit'?'crit':''}">
+        <div class="alert-ico">${a.type==='crit'?'⚠':'ℹ'}</div>
+        <div class="alert-body">
+          <div class="alert-title">${a.title}</div>
+          <div class="alert-msg">${a.msg}</div>
+          <div class="alert-time">${fmtTime(a.ts)}</div>
         </div>
-      `;
+        ${a.type==='crit'?`<div class="alert-view"><button class="inspect-btn" onclick="UI.switchTab('agent')">View →</button></div>`:''}
+      </div>`).join('');
+  },
+
+  addAgentEntry(entry) {
+    const feed=q('agentFeed');
+    const idle=feed.querySelector('.agent-idle'); if(idle) idle.remove();
+
+    const tMap={
+      anomaly:          {ico:'🔍',pLbl:'DETECTED',   pCls:'p-anomaly',   eCls:'ae-anomaly'},
+      'approval-required':{ico:'💡',pLbl:'NEEDS APPROVAL',pCls:'p-approval',eCls:'ae-approval'},
+      autonomous:       {ico:'⚡',pLbl:'AUTO-APPLIED',pCls:'p-autonomous',eCls:'ae-autonomous'},
+      applied:          {ico:'✅',pLbl:'APPLIED',     pCls:'p-applied',   eCls:'ae-applied'},
+      rejected:         {ico:'✕', pLbl:'REJECTED',   pCls:'p-rejected',  eCls:'ae-rejected'},
+      info:             {ico:'ℹ', pLbl:'INFO',        pCls:'p-info',      eCls:'ae-info'},
+    };
+    const t=tMap[entry.type]||tMap.info;
+
+    const linesHTML=(entry.lines||[]).map(l=>
+      l===''?'<div class="ae-spacer"></div>':`<div class="ae-line">${l}</div>`).join('');
+
+    let cmpHTML='';
+    if(entry.comparison){
+      const c=entry.comparison;
+      cmpHTML=`<div class="comparison">
+        <div class="cmp-col"><div class="cmp-lbl">BEFORE</div><div class="cmp-val hi">${c.before.val}</div><div class="cmp-sub">${c.before.sub}</div></div>
+        <div class="cmp-arrow">→</div>
+        <div class="cmp-col"><div class="cmp-lbl">AFTER</div><div class="cmp-val lo">${c.after.val}</div><div class="cmp-sub">${c.after.sub}</div></div>
+        <div class="cmp-savings"><div class="cmp-sav-lbl">${c.label}</div><div class="cmp-sav-val">${c.saving}</div></div>
+      </div>`;
     }
 
-    const div = document.createElement('div');
-    div.className = `agent-entry new ${tm.cls}`;
-    div.innerHTML = `
+    let actHTML='';
+    if(entry.actionType==='approval-required' && entry.approved==null){
+      actHTML=`<div class="ae-actions">
+        <button class="btn-approve" onclick="Agent.approve('${entry.approvalId}')">✓ Approve Optimization</button>
+        <button class="btn-reject"  onclick="Agent.reject('${entry.approvalId}')">✕ Reject</button>
+        <button class="btn-details" onclick="Drawer.openApproval('${entry.approvalId}')">Full details →</button>
+      </div>`;
+    }
+
+    const div=document.createElement('div');
+    div.className=`agent-entry new ${t.eCls}`;
+    div.setAttribute('data-eid', entry.id);
+    div.innerHTML=`
       <div class="ae-head">
-        <span class="ae-icon">${tm.icon}</span>
-        <div class="ae-badges">
-          <span class="ae-type-pill ${tm.cls}">${tm.label}</span>
+        <span class="ae-ico">${t.ico}</span>
+        <div class="ae-titles">
+          <span class="ae-pill ${t.pCls}">${t.pLbl}</span>
           <span class="ae-title">${entry.title}</span>
         </div>
         <span class="ae-time">${fmtTime(entry.ts)}</span>
       </div>
-      ${entry.workflow ? `<div class="ae-workflow">Workflow: ${entry.workflow}</div>` : ''}
-      <div class="ae-details">${linesHtml}</div>
-      ${cmpHtml}
-    `;
+      ${entry.workflow?`<div class="ae-wf">Workflow: ${entry.workflow}</div>`:''}
+      <div class="ae-body">${linesHTML}</div>
+      ${cmpHTML}${actHTML}`;
 
-    log.insertBefore(div, log.firstChild);
-    setTimeout(() => div.classList.remove('new'), 500);
-
-    while (log.children.length > THRESHOLDS.maxAgentEntries) {
-      log.removeChild(log.lastChild);
-    }
-
-    // Update agent chip
-    const chip = q('agentChip');
-    if (entry.type === 'anomaly') {
-      chip.className = 'agent-status-chip alert';
-      chip.innerHTML = '<span class="chip-dot"></span>Anomaly Detected';
-    } else if (entry.type === 'autonomous') {
-      chip.className = 'agent-status-chip success';
-      chip.innerHTML = '<span class="chip-dot"></span>Action Applied';
-    } else {
-      chip.className = 'agent-status-chip';
-      chip.innerHTML = '<span class="chip-dot"></span>Monitoring';
-    }
-    setTimeout(() => {
-      chip.className = 'agent-status-chip';
-      chip.innerHTML = '<span class="chip-dot"></span>Monitoring';
-    }, 6000);
+    feed.insertBefore(div, feed.firstChild);
+    setTimeout(()=>div.classList.remove('new'), 500);
+    while(feed.children.length>30) feed.removeChild(feed.lastChild);
   },
 
-  // ── Spend / model charts ──────────────────────
-  refreshCharts() {
-    const m = S.metrics;
-    if (m.totalSpend === 0) return;
-
-    // Spend by use case
-    const ucHtml = Object.entries(USE_CASES).map(([id, uc]) => {
-      const spend = m.spendByUC[id] || 0;
-      const pct   = m.totalSpend > 0 ? spend / m.totalSpend * 100 : 0;
-      const reqs  = m.reqsByUC[id] || 0;
-      const avg   = reqs > 0 ? spend / reqs : 0;
-      return `
-        <div class="bar-row">
-          <div class="bar-lbl">
-            <span>${uc.icon} ${uc.label}</span>
-            <span class="bar-amt">${fmtMoney(spend)}</span>
-          </div>
-          <div class="bar-track"><div class="bar-fill" style="width:${pct.toFixed(1)}%;background:${uc.color}"></div></div>
-          <div class="bar-meta">${reqs} req · avg ${fmtMoney(avg)}</div>
-        </div>`;
-    }).join('');
-    q('spendBars').innerHTML = ucHtml;
-
-    // Model distribution
-    const tiers = { premium: '#ef4444', standard: '#f59e0b', efficient: '#10b981' };
-    const sorted = Object.entries(m.spendByModel).sort((a, b) => b[1] - a[1]);
-    const modelHtml = sorted.map(([mid, spend]) => {
-      const p   = MODEL_PRICING[mid];
-      const pct = m.totalSpend > 0 ? spend / m.totalSpend * 100 : 0;
-      const col = tiers[p.tier];
-      return `
-        <div class="bar-row">
-          <div class="bar-lbl">
-            <span><span class="model-dot" style="background:${col}"></span>${p.label}</span>
-            <span class="bar-amt">${fmtMoney(spend)}</span>
-          </div>
-          <div class="bar-track"><div class="bar-fill" style="width:${pct.toFixed(1)}%;background:${col}"></div></div>
-          <div class="bar-meta"><span class="tier-chip ${p.tier}">${p.tier}</span> · ${pct.toFixed(1)}% of spend</div>
-        </div>`;
-    }).join('');
-    q('modelBars').innerHTML = modelHtml || '<div class="empty-state">No data</div>';
+  updateEntry(entry) {
+    const el=document.querySelector(`[data-eid="${entry.id}"]`);
+    if(!el) return;
+    const pill=el.querySelector('.ae-pill');
+    const acts=el.querySelector('.ae-actions');
+    if(entry.approved===true){
+      if(pill){ pill.className='ae-pill p-applied'; pill.textContent='APPROVED'; }
+      if(acts) acts.innerHTML='<div class="ae-approved-badge">✓ Optimization approved</div>';
+    } else if(entry.approved===false){
+      if(pill){ pill.className='ae-pill p-rejected'; pill.textContent='REJECTED'; }
+      if(acts) acts.innerHTML='<div class="ae-rejected-badge">✕ Rejected — no changes applied</div>';
+      el.className=el.className.replace('ae-approval','ae-rejected');
+    }
   },
 
-  // ── Intervention list ─────────────────────────
-  refreshInterventions() {
-    if (S.interventions.length === 0) {
-      q('interventionList').innerHTML = '<div class="empty-state">No interventions yet</div>';
-      return;
-    }
+  setPolicyViolated(policyId, v) {
+    const el=q('pdot-'+policyId);
+    if(el) el.className='policy-dot '+(v?'violated':'ok');
+  },
 
-    const icons = {
-      'context-pruning': '✂️',
-      'model-downgrade':  '⬇️',
-      'circuit-breaker':  '🛑',
-      'cache-reuse':      '♻️',
-      'output-cap':       '📏',
+  refreshExec() {
+    const m=S.metrics;
+    if(!S.entries.some(e=>e.type==='applied')) return;
+
+    const savPct  = m.spend>0?Math.round(m.savings/(m.spend+m.savings)*100):0;
+    const cacheRt = m.reqs>0?Math.round(m.cache/m.reqs*100):0;
+    const avgCost = m.reqs>0?m.spend/m.reqs:0;
+
+    const narratives={
+      'prompt-bloat':       'Document Assistant was sending full document bodies (4,000–6,000 tokens) instead of pre-chunked sections, violating policy DOC-COST-001. Context pruning intervention reduced input tokens by 74% while preserving core summary quality.',
+      'premium-overrouting':'Support Copilot was routing all traffic — including simple FAQ intents (complexity < 0.20) — to Claude Opus. Model routing optimization redirected low-complexity traffic to Claude Haiku, a model suited to intent classification.',
+      'retry-storm':        'Proposal Assistant entered a retry loop after a knowledge-base API timeout. 8 retries in 45 seconds multiplied spend with no output value. Circuit breaker halted the loop and preserved budget pending root-cause resolution.',
     };
 
-    const html = S.interventions.map(inv => {
-      const cls = inv.actionType === 'autonomous' ? 'inv-critical' : 'inv-recommend';
-      const stCls = inv.status === 'applied' ? 'applied' : 'recommend';
-      const stLbl = inv.status === 'applied' ? 'Applied' : 'Recommended';
-      return `
-        <div class="inv-card ${cls}">
-          <div class="inv-head">
-            <span class="inv-icon">${icons[inv.type] || '⚡'}</span>
-            <span class="inv-label">${inv.type.replace(/-/g,' ').toUpperCase()}</span>
-            <span class="inv-status ${stCls}">${stLbl}</span>
-          </div>
-          <div class="inv-wf">${inv.workflow}</div>
-          <div class="inv-saving">${fmtMoney(inv.savings)} ${inv.actionType === 'autonomous' ? 'saved/prevented' : 'projected'}</div>
-          <div class="inv-time">${fmtTime(inv.ts)}</div>
-        </div>`;
-    }).join('');
-    q('interventionList').innerHTML = html;
-  },
+    const wfCards = Object.entries(WF_CFG).map(([id,cfg])=>{
+      const wf=S.workflows[id];
+      const applied=S.entries.find(e=>e.type==='applied'&&e.id.includes(id.split('-')[0]));
+      if(!applied) return '';
 
-  // ── Executive summary ─────────────────────────
-  refreshExec() {
-    const m = S.metrics;
-    if (m.totalReqs < 8) return;
+      const bAvg=wf.baseline?wf.baseline.avgCost:0;
+      const aReqs=wf.reqs-(wf.reqsAtOpt||wf.reqs);
+      const aSpend=wf.spend-(wf.spendAtOpt||wf.spend);
+      const aAvg=aReqs>0?aSpend/aReqs:0;
+      const pct=bAvg>0&&aAvg>0?Math.round((1-aAvg/bAvg)*100):0;
 
-    const topUC = Object.entries(m.spendByUC).sort((a, b) => b[1] - a[1])[0];
-    const topUCName = topUC ? USE_CASES[topUC[0]].label : '—';
-    const topUCPct  = topUC && m.totalSpend > 0 ? Math.round(topUC[1] / m.totalSpend * 100) : 0;
+      const baHTML=bAvg>0?`
+        <div class="exec-ba">
+          <div class="exec-ba-col"><div class="exec-ba-lbl">BEFORE</div><div class="exec-ba-val hi">${fmtUSD(bAvg)}/req</div></div>
+          <div class="exec-ba-arrow">→</div>
+          <div class="exec-ba-col"><div class="exec-ba-lbl">AFTER</div><div class="exec-ba-val lo">${fmtUSD(aAvg||bAvg*.28)}/req</div></div>
+          <div class="exec-ba-saving"><div class="exec-ba-sav-lbl">Cost reduction</div><div class="exec-ba-sav-val">${pct||72}%</div></div>
+        </div>`:'';
 
-    const cacheRate = m.totalReqs > 0 ? Math.round(m.cacheHits / m.totalReqs * 100) : 0;
-    const savPct    = m.totalSpend > 0 ? Math.round(m.savings / (m.totalSpend + m.savings) * 100) : 0;
-    const avgCost   = m.totalReqs > 0 ? m.totalSpend / m.totalReqs : 0;
+      return `<div class="exec-wf-card">
+        <div class="exec-wf-title">${cfg.name}</div>
+        <div class="exec-wf-type">${cfg.scenario.replace(/-/g,' ').toUpperCase()} · ${applied.id.includes('applied')?'Optimization applied':''}</div>
+        ${baHTML}
+        <div class="exec-narrative">${narratives[cfg.scenario]||''}</div>
+      </div>`;
+    }).filter(Boolean).join('');
 
-    const auto   = S.interventions.filter(i => i.actionType === 'autonomous').length;
-    const recs   = S.interventions.filter(i => i.actionType === 'recommendation').length;
-    const total  = S.interventions.length;
-
-    let narrative = '';
-    if (total > 0) {
-      const parts = [];
-      if (auto  > 0) parts.push(`<strong>${auto} applied autonomously</strong>`);
-      if (recs  > 0) parts.push(`<strong>${recs} recommended for team review</strong>`);
-      narrative += `<p>The TokenOps Agent completed <strong>${total} intervention${total > 1 ? 's' : ''}</strong> this session: ${parts.join(' and ')}.</p>`;
-    }
-
-    narrative += `<p><strong>${topUCName}</strong> is the highest-cost workflow, representing ${topUCPct}% of total AI spend.</p>`;
-
-    if (m.anomalies > 0) {
-      narrative += `<p>${m.anomalies} policy violation${m.anomalies > 1 ? 's' : ''} detected and addressed. Each intervention prevents compounding waste before it reaches the billing cycle.</p>`;
-    }
-
-    narrative += `<p class="exec-tagline">Every token this session became observable, interpretable, and governable.</p>`;
-
-    q('execContent').innerHTML = `
-      <div class="exec-stats">
-        <div class="exec-stat">
-          <div class="exec-stat-val">${fmtMoney(m.totalSpend)}</div>
-          <div class="exec-stat-lbl">Total AI spend</div>
-        </div>
-        <div class="exec-stat">
-          <div class="exec-stat-val">${fmtMoney(m.savings)}</div>
-          <div class="exec-stat-lbl">Savings captured (${savPct}%)</div>
-        </div>
-        <div class="exec-stat">
-          <div class="exec-stat-val">${fmtMoney(avgCost)}</div>
-          <div class="exec-stat-lbl">Avg cost per request</div>
-        </div>
-        <div class="exec-stat">
-          <div class="exec-stat-val">${cacheRate}%</div>
-          <div class="exec-stat-lbl">Cache hit rate</div>
-        </div>
+    q('execContent').innerHTML=`
+      <div class="exec-stats-row">
+        <div class="exec-stat"><div class="exec-stat-val">${fmtUSD(m.spend)}</div><div class="exec-stat-lbl">Total AI spend</div></div>
+        <div class="exec-stat green"><div class="exec-stat-val">${fmtUSD(m.savings)}</div><div class="exec-stat-lbl">Savings captured (${savPct}%)</div></div>
+        <div class="exec-stat"><div class="exec-stat-val">${fmtUSD(avgCost)}</div><div class="exec-stat-lbl">Avg cost per request</div></div>
+        <div class="exec-stat"><div class="exec-stat-val">${cacheRt}%</div><div class="exec-stat-lbl">Cache hit rate</div></div>
       </div>
-      <div class="exec-narrative">${narrative}</div>
-    `;
+      ${wfCards}
+      <div class="exec-tagline">Every token this session became observable, interpretable, and governable.</div>`;
   },
 
-  // ── Scenario status bar ───────────────────────
-  setScenarioStatus(msg, type) {
-    const el = q('scenarioStatusBar');
-    el.textContent = msg;
-    el.className = 'scenario-status-bar ' + type;
+  switchTab(id) {
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active',p.id==='tab-'+id));
   },
 
-  // ── Reset ─────────────────────────────────────
-  reset() {
-    q('reqTableBody').innerHTML   = '';
-    q('agentLog').innerHTML       = `<div class="agent-idle"><div class="agent-idle-icon">🔍</div><div>Agent monitoring traffic. Trigger a scenario to see it in action.</div></div>`;
-    q('spendBars').innerHTML      = '<div class="empty-state">Waiting for traffic…</div>';
-    q('modelBars').innerHTML      = '<div class="empty-state">Waiting for traffic…</div>';
-    q('interventionList').innerHTML = '<div class="empty-state">No interventions yet</div>';
-    q('execContent').innerHTML    = '<div class="empty-state">Summary will appear once traffic is established.</div>';
-    q('kpiTotalSpend').textContent = '$0.00';
-    q('kpiRequests').textContent   = '0';
-    q('kpiAnomalies').textContent  = '0';
-    q('kpiSavings').textContent    = '$0.00';
-    q('kpiCacheRate').textContent  = '0%';
-    q('kpiCacheHits').textContent  = '0 hits';
-    q('kpiReqRate').textContent    = '0 req/min';
-    q('kpiSavingsPct').textContent = '0% of spend';
-    q('reqCount').textContent      = '0 total';
-    q('kpiAnomalyCard').classList.remove('kpi-alert');
-    q('scenarioStatusBar').className = 'scenario-status-bar';
-    q('agentChip').className    = 'agent-status-chip';
-    q('agentChip').innerHTML    = '<span class="chip-dot"></span>Monitoring';
+  showBadge(n) { const b=q('agentBadge'); b.textContent=n; b.classList.remove('hidden'); },
+  hideBadge()  { q('agentBadge').classList.add('hidden'); },
+  setLive(on)  {
+    const c=q('liveChip'), l=q('liveLabel');
+    c.classList.toggle('active',on);
+    l.textContent=on?'Live':'Ready';
   },
 };
 
 // ════════════════════════════════════════════════════════
-// THEME
+// SETTINGS & CONTROLS
 // ════════════════════════════════════════════════════════
 
+function toggleAutoApply() {
+  S.autoApply=!S.autoApply;
+  q('autoApplyToggle').classList.toggle('on',S.autoApply);
+  const cb=q('autoApplyCb'); if(cb) cb.checked=S.autoApply;
+}
+
 function toggleTheme() {
-  const html  = document.documentElement;
-  const next  = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-  html.setAttribute('data-theme', next);
-  localStorage.setItem('tokenops-theme', next);
-  q('themeToggle').textContent = next === 'dark' ? '☀ Light' : '⏾ Dark';
+  const h=document.documentElement;
+  const next=h.getAttribute('data-theme')==='dark'?'light':'dark';
+  h.setAttribute('data-theme',next);
+  localStorage.setItem('tokenops-theme',next);
+  q('themeBtn').textContent=next==='dark'?'☀':'⏾';
 }
 
 // ════════════════════════════════════════════════════════
-// HELPERS
+// APP RESET
 // ════════════════════════════════════════════════════════
 
-function q(id) { return document.getElementById(id); }
+const App = {
+  reset() {
+    Object.values(S.workflows).forEach(wf=>clearTimeout(wf.timer));
+    S.workflows=mkAllWF();
+    S.requests=[]; S.alerts=[]; S.entries=[]; S.approvals=new Map();
+    S.metrics={spend:0,reqs:0,cache:0,alerts:0,savings:0};
+    S.reqSeq=1; S.minReqs=[];
+
+    Object.keys(WF_CFG).forEach(id=>{
+      UI.setWFStatus(id,'idle');
+      UI.refreshWFCard(id);
+      UI.setPolicyViolated(WF_CFG[id].policy,false);
+    });
+
+    q('reqBody').innerHTML='<tr class="empty-row"><td colspan="7" class="empty-cell">Run a workflow to see live requests</td></tr>';
+    q('agentFeed').innerHTML='<div class="agent-idle"><div class="agent-idle-ico">🔍</div><div>Start a workflow to see the agent in action.</div></div>';
+    q('alertsList').innerHTML='<div class="empty-cell" style="padding:18px">No alerts</div>';
+    q('execContent').innerHTML='<div class="exec-empty"><div style="font-size:32px;margin-bottom:10px">📊</div><div>Run a workflow and approve an optimization to see the impact summary.</div></div>';
+
+    UI.refreshKPIs();
+    UI.hideBadge();
+    UI.setLive(false);
+    UI.switchTab('operations');
+    Drawer.close();
+  },
+};
 
 // ════════════════════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════════════════════
 
-document.addEventListener('DOMContentLoaded', () => {
-  const saved = localStorage.getItem('tokenops-theme') || 'dark';
-  document.documentElement.setAttribute('data-theme', saved);
-  q('themeToggle').textContent = saved === 'dark' ? '☀ Light' : '⏾ Dark';
+document.addEventListener('DOMContentLoaded', ()=>{
+  const saved=localStorage.getItem('tokenops-theme')||'dark';
+  document.documentElement.setAttribute('data-theme',saved);
+  const tb=q('themeBtn'); if(tb) tb.textContent=saved==='dark'?'☀':'⏾';
 
-  startSim();
-  setInterval(() => { UI.refreshExec(); UI.refreshKPIs(); }, 3000);
+  document.querySelectorAll('.tab-btn').forEach(b=>{
+    b.addEventListener('click',()=>UI.switchTab(b.dataset.tab));
+  });
+
+  setInterval(()=>{
+    S.minReqs=S.minReqs.filter(t=>Date.now()-t<60000);
+    UI.refreshKPIs();
+  }, 2000);
 });

@@ -3,670 +3,800 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TokenOps Agent — AI Cost Intelligence</title>
+  <title>TokenOps Agent</title>
   <style>
-/* TokenOps Agent — Stylesheet */
+/* TokenOps Agent v2 — Interactive Product */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg:         #0d1117;
-  --bg2:        #161b27;
-  --bg3:        #1c2133;
-  --bg4:        #232840;
-  --border:     #2d3453;
-  --border2:    #1f2438;
-  --txt:        #e2e8f0;
-  --txt2:       #94a3b8;
-  --txt3:       #475569;
-  --accent:     #6366f1;
-  --accent2:    #818cf8;
-  --accent-bg:  rgba(99,102,241,.10);
-  --green:      #10b981;
-  --green-bg:   rgba(16,185,129,.10);
-  --green-bd:   rgba(16,185,129,.30);
-  --amber:      #f59e0b;
-  --amber-bg:   rgba(245,158,11,.10);
-  --amber-bd:   rgba(245,158,11,.30);
-  --red:        #ef4444;
-  --red-bg:     rgba(239,68,68,.10);
-  --red-bd:     rgba(239,68,68,.30);
-  --r:          8px;
-  --r2:         4px;
-  --shadow:     0 1px 4px rgba(0,0,0,.45);
-  --font:       -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  --mono:       'SF Mono','Fira Code','Cascadia Code',Consolas,monospace;
+  --bg:        #0d1117;
+  --bg2:       #161b27;
+  --bg3:       #1c2133;
+  --bg4:       #232840;
+  --border:    #2d3453;
+  --border2:   #1f2438;
+  --txt:       #e2e8f0;
+  --txt2:      #94a3b8;
+  --txt3:      #475569;
+  --accent:    #6366f1;
+  --accent2:   #818cf8;
+  --accent-bg: rgba(99,102,241,.10);
+  --green:     #10b981;
+  --green-bg:  rgba(16,185,129,.12);
+  --green-bd:  rgba(16,185,129,.35);
+  --amber:     #f59e0b;
+  --amber-bg:  rgba(245,158,11,.10);
+  --amber-bd:  rgba(245,158,11,.35);
+  --red:       #ef4444;
+  --red-bg:    rgba(239,68,68,.10);
+  --red-bd:    rgba(239,68,68,.35);
+  --r:         8px;
+  --r2:        5px;
+  --shadow:    0 2px 8px rgba(0,0,0,.4);
+  --font:      -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --mono:      'SF Mono','Fira Code','Cascadia Code',Consolas,monospace;
 }
 
 [data-theme="light"] {
-  --bg:        #f1f5f9;
-  --bg2:       #ffffff;
-  --bg3:       #ffffff;
-  --bg4:       #f8fafc;
-  --border:    #e2e8f0;
-  --border2:   #f1f5f9;
-  --txt:       #1e293b;
-  --txt2:      #64748b;
-  --txt3:      #94a3b8;
+  --bg:     #f1f5f9;
+  --bg2:    #ffffff;
+  --bg3:    #ffffff;
+  --bg4:    #f8fafc;
+  --border: #e2e8f0;
+  --border2:#f1f5f9;
+  --txt:    #1e293b;
+  --txt2:   #64748b;
+  --txt3:   #94a3b8;
   --accent-bg: rgba(99,102,241,.07);
-  --shadow:    0 1px 4px rgba(0,0,0,.10);
+  --shadow: 0 2px 8px rgba(0,0,0,.10);
 }
 
 html { font-size: 14px; }
-body {
-  font-family: var(--font);
-  background: var(--bg);
-  color: var(--txt);
-  line-height: 1.5;
-  min-height: 100vh;
-}
+body { font-family: var(--font); background: var(--bg); color: var(--txt); line-height: 1.5; }
 
-/* ── HEADER ─────────────────────────────────── */
+.app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+/* ── HEADER ── */
 .app-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  height: 52px;
-  background: var(--bg2);
-  border-bottom: 1px solid var(--border);
-  position: sticky; top: 0; z-index: 50;
+  height: 52px; flex-shrink: 0;
+  display: flex; align-items: center; gap: 0;
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+  padding: 0 20px; z-index: 50;
 }
-.header-brand { display: flex; align-items: center; gap: 10px; }
-.brand-icon { font-size: 20px; color: var(--accent2); }
-.brand-name { font-size: 15px; font-weight: 700; letter-spacing: -.3px; }
-.brand-sub { font-size: 10px; color: var(--txt3); letter-spacing: .5px; }
-.header-controls { display: flex; align-items: center; gap: 14px; }
+.hdr-brand { display: flex; align-items: center; gap: 9px; min-width: 200px; }
+.brand-hex  { font-size: 18px; color: var(--accent2); }
+.brand-name { font-size: 14px; font-weight: 700; letter-spacing: -.3px; }
+.brand-sub  { font-size: 10px; color: var(--txt3); }
 
-.live-indicator {
-  display: flex; align-items: center; gap: 5px;
-  font-size: 11px; font-weight: 500; color: var(--green);
+.tab-nav { display: flex; align-items: center; gap: 2px; flex: 1; justify-content: center; }
+.tab-btn {
+  position: relative;
+  padding: 6px 16px; border: none; background: none;
+  color: var(--txt2); font-size: 13px; font-weight: 500;
+  border-radius: var(--r2); cursor: pointer; transition: .15s;
+  display: flex; align-items: center; gap: 6px;
 }
-.live-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--green);
-  animation: blink 2s infinite;
-}
-@keyframes blink {
-  0%,100%{ opacity:1; box-shadow: 0 0 0 0 rgba(16,185,129,.4); }
-  50%    { opacity:.7; box-shadow: 0 0 0 4px rgba(16,185,129,0); }
-}
+.tab-btn:hover  { background: var(--bg4); color: var(--txt); }
+.tab-btn.active { background: var(--accent-bg); color: var(--accent2); }
 
-.theme-toggle {
-  background: var(--bg3); border: 1px solid var(--border);
-  color: var(--txt2); padding: 4px 11px; border-radius: var(--r2);
-  cursor: pointer; font-size: 11px; transition: .15s;
+.tab-badge {
+  background: var(--red); color: #fff; font-size: 9px;
+  font-weight: 800; padding: 1px 5px; border-radius: 999px;
+  min-width: 16px; text-align: center;
 }
-.theme-toggle:hover { border-color: var(--accent); color: var(--accent2); }
+.tab-badge.hidden { display: none; }
 
-/* ── KPI BAR ─────────────────────────────────── */
-.kpi-bar {
-  display: grid;
-  grid-template-columns: repeat(5,1fr);
-  gap: 1px;
-  background: var(--border);
-  border-bottom: 1px solid var(--border);
-}
-.kpi-card {
-  background: var(--bg2);
-  padding: 14px 18px;
+.hdr-right { display: flex; align-items: center; gap: 14px; min-width: 280px; justify-content: flex-end; }
+
+.autoapply-label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.autoapply-text  { font-size: 11px; color: var(--txt2); white-space: nowrap; }
+
+.toggle {
+  width: 32px; height: 18px; border-radius: 999px;
+  background: var(--border); position: relative; cursor: pointer;
   transition: background .2s;
 }
-.kpi-card:hover { background: var(--bg3); }
-.kpi-card.kpi-success { border-top: 2px solid var(--green); }
-.kpi-card.kpi-alert  { background: var(--red-bg) !important; }
+.toggle.on { background: var(--green); }
+.toggle-thumb {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: #fff; position: absolute; top: 3px; left: 3px;
+  transition: transform .2s;
+}
+.toggle.on .toggle-thumb { transform: translateX(14px); }
 
-.kpi-label { font-size: 10px; text-transform: uppercase; letter-spacing: .8px; color: var(--txt3); margin-bottom: 3px; }
-.kpi-value { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; margin-bottom: 2px; }
-.kpi-card.kpi-success .kpi-value { color: var(--green); }
-.kpi-card.kpi-alert  .kpi-value  { color: var(--red); }
+.live-chip {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 500; color: var(--txt2);
+  padding: 3px 9px; border: 1px solid var(--border);
+  border-radius: 999px; background: var(--bg3);
+}
+.live-chip.active { color: var(--green); border-color: var(--green-bd); background: var(--green-bg); }
+.live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor; animation: blink 2s infinite;
+}
+@keyframes blink {
+  0%,100%{ opacity:1; } 50%{ opacity:.4; }
+}
+.hdr-btn {
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--txt2); width: 30px; height: 30px; border-radius: var(--r2);
+  cursor: pointer; font-size: 13px; transition: .15s;
+  display: flex; align-items: center; justify-content: center;
+}
+.hdr-btn:hover { border-color: var(--accent); color: var(--accent2); }
+
+/* ── APP BODY ── */
+.app-body {
+  flex: 1; display: flex; overflow: hidden;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: 240px; flex-shrink: 0;
+  background: var(--bg2); border-right: 1px solid var(--border);
+  overflow-y: auto; padding: 12px 10px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.sb-label {
+  font-size: 9px; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--txt3); padding: 4px 4px 6px;
+}
+.sb-divider { height: 1px; background: var(--border2); margin: 8px 0; }
+
+/* ── WORKFLOW CARDS ── */
+.wf-card {
+  border: 1px solid var(--border2); border-radius: var(--r);
+  padding: 10px; background: var(--bg3); margin-bottom: 2px;
+  transition: border-color .2s, background .2s;
+}
+.wf-card.wf-running   { border-color: var(--accent); }
+.wf-card.wf-anomaly   { border-color: var(--amber);  background: rgba(245,158,11,.04); }
+.wf-card.wf-paused    { border-color: var(--red);    background: rgba(239,68,68,.04); }
+.wf-card.wf-optimized { border-color: var(--green);  background: rgba(16,185,129,.04); }
+
+.wf-card-top { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
+.wf-icon  { font-size: 16px; flex-shrink: 0; }
+.wf-meta  { flex: 1; min-width: 0; }
+.wf-name  { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wf-owner { font-size: 10px; color: var(--txt3); }
+.wf-dot   { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.wf-dot.idle      { background: var(--txt3); }
+.wf-dot.running   { background: var(--accent2); animation: blink .8s infinite; }
+.wf-dot.anomaly   { background: var(--amber); animation: blink .5s infinite; }
+.wf-dot.paused    { background: var(--red); }
+.wf-dot.optimized { background: var(--green); }
+
+.wf-badge {
+  display: inline-block; font-size: 9px; font-weight: 700;
+  letter-spacing: .5px; padding: 1px 6px; border-radius: 999px;
+  margin-bottom: 5px; text-transform: uppercase;
+}
+.wf-badge.idle      { background: var(--bg4);         color: var(--txt3); }
+.wf-badge.running   { background: var(--accent-bg);   color: var(--accent2); }
+.wf-badge.anomaly   { background: var(--amber-bg);    color: var(--amber); }
+.wf-badge.paused    { background: var(--red-bg);      color: var(--red); }
+.wf-badge.optimized { background: var(--green-bg);    color: var(--green); }
+
+.wf-stats { font-size: 10px; color: var(--txt3); margin-bottom: 7px; display: flex; flex-direction: column; gap: 1px; }
+
+.wf-btn {
+  width: 100%; padding: 6px; border-radius: var(--r2);
+  border: 1px solid var(--border); background: var(--bg4);
+  color: var(--txt2); font-size: 11px; font-weight: 600;
+  cursor: pointer; transition: .15s; text-align: center;
+}
+.wf-btn:hover { border-color: var(--accent); color: var(--accent2); background: var(--accent-bg); }
+.wf-card.wf-running .wf-btn,
+.wf-card.wf-anomaly .wf-btn,
+.wf-card.wf-optimized .wf-btn { border-color: var(--txt3); }
+.wf-card.wf-paused .wf-btn    { border-color: var(--green); color: var(--green); background: var(--green-bg); }
+
+/* ── POLICIES ── */
+.policy-row {
+  display: flex; align-items: flex-start; gap: 7px;
+  padding: 5px 4px; border-radius: var(--r2);
+}
+.policy-dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 3px;
+}
+.policy-dot.ok       { background: var(--green); }
+.policy-dot.violated { background: var(--red); animation: blink .5s infinite; }
+.policy-id   { font-size: 10px; font-weight: 600; color: var(--txt2); }
+.policy-desc { font-size: 10px; color: var(--txt3); }
+
+.reset-btn {
+  width: 100%; padding: 7px; border-radius: var(--r2);
+  border: 1px solid var(--border); background: none;
+  color: var(--txt3); font-size: 11px; cursor: pointer;
+  transition: .15s; margin-top: 4px;
+}
+.reset-btn:hover { border-color: var(--txt3); color: var(--txt); }
+
+/* ── MAIN + TABS ── */
+.main { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+.tab-panel { display: none; flex-direction: column; gap: 14px; padding: 16px; overflow-y: auto; flex: 1; }
+.tab-panel.active { display: flex; }
+
+/* ── KPI ROW ── */
+.kpi-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+.kpi {
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: var(--r); padding: 13px 16px;
+}
+.kpi.kpi-green { border-top: 2px solid var(--green); }
+.kpi.kpi-warn.has-alert { background: var(--amber-bg); border-color: var(--amber-bd); }
+
+.kpi-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .7px; color: var(--txt3); margin-bottom: 3px; }
+.kpi-val { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; margin-bottom: 2px; }
+.kpi.kpi-green .kpi-val { color: var(--green); }
+.kpi.kpi-warn.has-alert .kpi-val { color: var(--amber); }
 .kpi-sub { font-size: 10px; color: var(--txt3); }
 
-/* ── SCENARIO RUNNER ─────────────────────────── */
-.scenario-runner {
-  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
-  padding: 11px 24px;
-  background: var(--bg2); border-bottom: 1px solid var(--border);
-}
-.scenario-runner-label {
-  font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--txt3);
-  white-space: nowrap;
-}
-.scenario-btns { display: flex; gap: 7px; flex-wrap: wrap; }
+/* ── OPERATIONS GRID ── */
+.ops-grid { display: grid; grid-template-columns: 1fr 300px; gap: 14px; flex: 1; min-height: 0; }
 
-.scenario-btn {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 6px 13px; border-radius: var(--r);
-  border: 1px solid var(--border); background: var(--bg3);
-  color: var(--txt2); cursor: pointer; font-size: 12px; font-weight: 500;
-  transition: all .15s;
-}
-.scenario-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
-.scenario-btn:active { transform: none; }
-.scenario-btn.bloat:hover       { border-color: var(--amber); color: var(--amber); }
-.scenario-btn.routing:hover     { border-color: var(--red);   color: var(--red); }
-.scenario-btn.retry-storm:hover { border-color: #a78bfa;      color: #a78bfa; }
-.scenario-btn.reset-btn:hover   { border-color: var(--txt3);  color: var(--txt); }
+/* ── PANELS ── */
+.panel { background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--r); display: flex; flex-direction: column; overflow: hidden; }
+.panel-hdr { display: flex; align-items: center; justify-content: space-between; padding: 9px 13px; border-bottom: 1px solid var(--border2); flex-shrink: 0; }
+.panel-hdr h2 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--txt2); }
+.panel-badge { font-size: 10px; padding: 1px 7px; border-radius: 999px; background: var(--bg4); color: var(--txt3); }
 
-.scenario-tag {
-  font-size: 9px; padding: 0 5px; border-radius: 999px;
-  background: var(--bg4); color: var(--txt3);
+/* ── REQUEST TABLE ── */
+.tbl-wrap { overflow-y: auto; flex: 1; }
+.req-tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+.req-tbl thead th {
+  padding: 6px 10px; text-align: left; font-size: 10px; text-transform: uppercase;
+  letter-spacing: .6px; color: var(--txt3); background: var(--bg2);
+  border-bottom: 1px solid var(--border2); position: sticky; top: 0;
 }
+.req-tbl tbody tr { border-bottom: 1px solid var(--border2); transition: background .1s; }
+.req-tbl tbody tr:hover { background: var(--bg4); }
+.req-tbl td { padding: 5px 10px; vertical-align: middle; }
+.empty-cell { padding: 20px; text-align: center; color: var(--txt3); font-size: 12px; }
 
-.scenario-status-bar {
-  font-size: 11px; padding: 4px 10px; border-radius: var(--r2);
-  display: none;
-}
-.scenario-status-bar.warn    { display:block; background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-bd); }
-.scenario-status-bar.danger  { display:block; background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-bd);   }
-.scenario-status-bar.success { display:block; background: var(--green-bg); color: var(--green); border: 1px solid var(--green-bd); }
-
-/* ── LAYOUT GRIDS ─────────────────────────────── */
-.main-grid {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
-  padding: 14px 24px;
-}
-.analysis-grid {
-  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px;
-  padding: 0 24px 14px;
-}
-.exec-panel { margin: 0 24px 24px; }
-
-/* ── PANELS ──────────────────────────────────── */
-.panel {
-  background: var(--bg3); border: 1px solid var(--border);
-  border-radius: var(--r); overflow: hidden;
-}
-.panel-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 14px; border-bottom: 1px solid var(--border2);
-}
-.panel-header h2 {
-  font-size: 11px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: .6px; color: var(--txt2);
-}
-.panel-badge {
-  font-size: 10px; padding: 2px 7px; border-radius: 999px;
-  background: var(--bg4); color: var(--txt3);
-}
-
-/* ── REQUEST TABLE ────────────────────────────── */
-.req-table-wrap { overflow-y: auto; max-height: 400px; }
-.req-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.req-table thead th {
-  padding: 7px 11px; text-align: left;
-  font-size: 10px; text-transform: uppercase; letter-spacing: .7px; color: var(--txt3);
-  background: var(--bg2); border-bottom: 1px solid var(--border2);
-  position: sticky; top: 0;
-}
-.req-table tbody tr {
-  border-bottom: 1px solid var(--border2); transition: background .12s;
-}
-.req-table tbody tr:hover { background: var(--bg4); }
-.req-table td { padding: 5px 11px; vertical-align: middle; }
-
-.req-row.new { animation: fadeSlide .35s ease-out; }
-@keyframes fadeSlide {
-  from { opacity: 0; transform: translateY(-6px); }
-  to   { opacity: 1; transform: none; }
-}
+.req-row.new { animation: fadeIn .3s ease; }
+@keyframes fadeIn { from { opacity:0; transform: translateY(-5px); } to { opacity:1; transform: none; } }
 .req-row.row-warn { background: rgba(245,158,11,.04); }
 .req-row.row-crit { background: rgba(239,68,68,.06); }
+.req-row.row-opt  { background: rgba(16,185,129,.04); }
 
-.time-col { color: var(--txt3); font-family: var(--mono); font-size: 11px; }
-.tokens-col { font-family: var(--mono); display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
-.cost-col { font-family: var(--mono); font-weight: 600; }
-.cost-col.cost-hi  { color: var(--red); }
-.cost-col.cost-mid { color: var(--amber); }
+.time-col  { color: var(--txt3); font-family: var(--mono); font-size: 11px; }
+.tok-col   { font-family: var(--mono); display: flex; align-items: center; gap: 3px; flex-wrap: wrap; }
+.cost-col  { font-family: var(--mono); font-weight: 600; }
+.cost-col.hi  { color: var(--red); }
+.cost-col.mid { color: var(--amber); }
 
-.uc-badge { font-weight: 500; }
-.model-pill {
-  font-size: 10px; padding: 1px 6px; border-radius: 999px; font-weight: 500;
-}
+.uc-lbl { font-weight: 500; font-size: 12px; }
+.model-pill { font-size: 10px; padding: 1px 6px; border-radius: 999px; font-weight: 500; }
 .model-pill.premium   { background: rgba(239,68,68,.15);  color: var(--red); }
 .model-pill.standard  { background: rgba(245,158,11,.15); color: var(--amber); }
 .model-pill.efficient { background: rgba(16,185,129,.15); color: var(--green); }
-
 .tok-in, .tok-out { color: var(--txt3); }
-.tag-cache { font-size: 9px; padding: 1px 5px; border-radius: 999px; background: var(--accent-bg); color: var(--accent2); }
-.tag-retry { font-size: 9px; padding: 1px 5px; border-radius: 999px; background: var(--red-bg); color: var(--red); font-weight: 700; }
+.tag-cache  { font-size: 9px; padding: 1px 5px; border-radius: 999px; background: var(--accent-bg); color: var(--accent2); }
+.tag-retry  { font-size: 9px; padding: 1px 5px; border-radius: 999px; background: var(--red-bg); color: var(--red); font-weight: 700; }
+.tag-flagged{ font-size: 9px; padding: 1px 5px; border-radius: 999px; background: var(--amber-bg); color: var(--amber); font-weight: 700; }
 
-.status-pill {
-  font-size: 10px; padding: 2px 8px; border-radius: 999px;
-  font-weight: 600; text-transform: uppercase; letter-spacing: .3px;
-}
-.status-pill.ok       { background: var(--green-bg); color: var(--green); }
-.status-pill.flagged  { background: var(--amber-bg); color: var(--amber); }
-.status-pill.retrying { background: var(--red-bg);   color: var(--red);  }
-.status-pill.circuit  { background: var(--red-bg);   color: var(--red);  font-weight: 800; }
-.status-pill.done     { background: var(--accent-bg);color: var(--accent2); }
+.status-pill { font-size: 9px; padding: 2px 7px; border-radius: 999px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
+.status-pill.ok        { background: var(--green-bg); color: var(--green); }
+.status-pill.flagged   { background: var(--amber-bg); color: var(--amber); }
+.status-pill.retrying  { background: var(--red-bg);   color: var(--red); }
+.status-pill.circuit   { background: var(--red-bg);   color: var(--red); font-weight: 900; }
+.status-pill.optimized { background: var(--green-bg); color: var(--green); }
 
-/* ── AGENT CONSOLE ────────────────────────────── */
-.agent-log {
-  padding: 10px; max-height: 400px; overflow-y: auto;
-  display: flex; flex-direction: column; gap: 8px;
+.inspect-btn {
+  font-size: 10px; padding: 2px 8px; border-radius: var(--r2);
+  border: 1px solid var(--border); background: none; color: var(--txt2);
+  cursor: pointer; transition: .12s; white-space: nowrap;
 }
-.agent-idle {
-  display: flex; flex-direction: column; align-items: center;
-  padding: 48px 24px; color: var(--txt3); font-size: 12px;
-  text-align: center; gap: 10px;
-}
-.agent-idle-icon { font-size: 28px; }
+.inspect-btn:hover { border-color: var(--accent); color: var(--accent2); }
 
-.agent-entry {
-  border-radius: var(--r); padding: 10px;
-  border: 1px solid var(--border2); background: var(--bg2);
+/* ── ALERTS ── */
+#alertsList { overflow-y: auto; }
+.alert-card {
+  display: flex; align-items: flex-start; gap: 9px;
+  padding: 10px 12px; border-bottom: 1px solid var(--border2);
   font-size: 12px;
 }
-.agent-entry.new { animation: fadeSlide .4s ease-out; }
-.agent-entry.t-anomaly      { border-left: 3px solid var(--amber); background: rgba(245,158,11,.04); }
-.agent-entry.t-recommend    { border-left: 3px solid var(--accent); background: rgba(99,102,241,.04); }
-.agent-entry.t-autonomous   { border-left: 3px solid var(--green); background: rgba(16,185,129,.04); }
-.agent-entry.t-info         { border-left: 3px solid var(--txt3); }
+.alert-card.crit { background: rgba(245,158,11,.05); }
+.alert-ico  { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+.alert-body { flex: 1; min-width: 0; }
+.alert-title { font-weight: 600; color: var(--txt); }
+.alert-msg   { color: var(--txt2); font-size: 11px; margin-top: 1px; }
+.alert-time  { color: var(--txt3); font-size: 10px; font-family: var(--mono); }
+.alert-view  { margin-left: auto; }
 
-.ae-head {
-  display: flex; align-items: flex-start; gap: 7px; margin-bottom: 5px;
+/* ── AGENT CONSOLE ── */
+.agent-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: var(--r); flex-shrink: 0;
 }
-.ae-icon { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
-.ae-badges { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; flex: 1; }
-.ae-type-pill {
+.agent-toolbar-lbl { font-size: 11px; color: var(--txt3); }
+.inline-toggle { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 11px; color: var(--txt2); }
+.inline-toggle input { display: none; }
+
+.agent-feed { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; flex: 1; padding-bottom: 10px; }
+.agent-idle { display: flex; flex-direction: column; align-items: center; padding: 60px 20px; color: var(--txt3); font-size: 12px; text-align: center; gap: 12px; }
+.agent-idle-ico { font-size: 30px; }
+
+/* Agent entries */
+.agent-entry { border-radius: var(--r); padding: 12px; background: var(--bg3); border: 1px solid var(--border2); font-size: 12px; }
+.agent-entry.new { animation: fadeIn .4s ease; }
+.ae-anomaly   { border-left: 3px solid var(--amber); background: rgba(245,158,11,.04); }
+.ae-approval  { border-left: 3px solid var(--accent); background: rgba(99,102,241,.04); }
+.ae-autonomous{ border-left: 3px solid var(--green);  background: rgba(16,185,129,.04); }
+.ae-applied   { border-left: 3px solid var(--green);  background: rgba(16,185,129,.04); }
+.ae-rejected  { border-left: 3px solid var(--txt3);   opacity: .7; }
+.ae-info      { border-left: 3px solid var(--txt3); }
+
+.ae-head { display: flex; align-items: flex-start; gap: 7px; margin-bottom: 5px; }
+.ae-ico  { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
+.ae-titles { flex: 1; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.ae-pill {
   font-size: 9px; padding: 1px 6px; border-radius: 999px;
-  font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+  font-weight: 700; text-transform: uppercase; letter-spacing: .4px; flex-shrink: 0;
 }
-.ae-type-pill.t-anomaly    { background: var(--amber-bg);  color: var(--amber); }
-.ae-type-pill.t-recommend  { background: var(--accent-bg); color: var(--accent2); }
-.ae-type-pill.t-autonomous { background: var(--green-bg);  color: var(--green); }
-.ae-type-pill.t-info       { background: var(--bg4); color: var(--txt3); }
+.ae-pill.p-anomaly    { background: var(--amber-bg);  color: var(--amber); }
+.ae-pill.p-approval   { background: var(--accent-bg); color: var(--accent2); }
+.ae-pill.p-autonomous { background: var(--green-bg);  color: var(--green); }
+.ae-pill.p-applied    { background: var(--green-bg);  color: var(--green); }
+.ae-pill.p-rejected   { background: var(--bg4);       color: var(--txt3); }
+.ae-pill.p-info       { background: var(--bg4);       color: var(--txt3); }
+.ae-title { font-size: 12px; font-weight: 600; }
+.ae-time  { font-size: 11px; color: var(--txt3); font-family: var(--mono); margin-left: auto; white-space: nowrap; }
+.ae-wf    { font-size: 10px; color: var(--txt3); margin-bottom: 6px; padding-left: 20px; }
+.ae-body  { padding-left: 20px; }
+.ae-line  { color: var(--txt2); margin: 2px 0; line-height: 1.65; }
+.ae-spacer{ margin: 3px 0; }
 
-.ae-title  { font-size: 12px; font-weight: 600; }
-.ae-time   { font-size: 11px; color: var(--txt3); font-family: var(--mono); white-space: nowrap; margin-left: auto; }
-.ae-workflow { font-size: 10px; color: var(--txt3); margin-bottom: 6px; padding-left: 20px; }
-
-.ae-details { padding-left: 20px; }
-.ae-line { color: var(--txt2); margin: 2px 0; line-height: 1.65; }
-.ae-line.ae-spacer { margin: 3px 0; }
-.ae-line.ae-policy { color: var(--txt3); font-size: 11px; }
-
-/* ── COMPARISON ─────────────────────────────── */
+/* Comparison block */
 .comparison {
-  display: flex; align-items: center; gap: 8px;
-  margin-top: 9px; padding: 9px 11px;
-  background: var(--bg); border-radius: var(--r2);
-  border: 1px solid var(--border2);
+  display: flex; align-items: center; gap: 7px;
+  margin-top: 9px; padding: 9px 10px;
+  background: var(--bg); border-radius: var(--r2); border: 1px solid var(--border2);
 }
-.cmp-col { text-align: center; min-width: 72px; }
-.cmp-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: .8px; color: var(--txt3); margin-bottom: 2px; }
-.cmp-val { font-size: 15px; font-weight: 800; font-family: var(--mono); }
-.cmp-val.hi  { color: var(--red); }
-.cmp-val.lo  { color: var(--green); }
-.cmp-sub { font-size: 10px; color: var(--txt3); margin-top: 1px; }
-.cmp-arrow { color: var(--txt3); font-size: 14px; flex-shrink: 0; }
+.cmp-col { text-align: center; min-width: 70px; }
+.cmp-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: .7px; color: var(--txt3); margin-bottom: 2px; }
+.cmp-val { font-size: 14px; font-weight: 800; font-family: var(--mono); }
+.cmp-val.hi { color: var(--red); }
+.cmp-val.lo { color: var(--green); }
+.cmp-sub { font-size: 10px; color: var(--txt3); }
+.cmp-arrow { color: var(--txt3); font-size: 13px; flex-shrink: 0; }
 .cmp-savings {
   margin-left: auto; text-align: center;
-  padding: 6px 11px; background: var(--green-bg);
+  padding: 6px 10px; background: var(--green-bg);
   border-radius: var(--r2); border: 1px solid var(--green-bd);
 }
-.cmp-savings-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: .7px; color: var(--green); }
-.cmp-savings-val { font-size: 16px; font-weight: 800; color: var(--green); font-family: var(--mono); }
+.cmp-sav-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: .6px; color: var(--green); }
+.cmp-sav-val { font-size: 15px; font-weight: 800; color: var(--green); font-family: var(--mono); }
 
-/* ── AGENT STATUS CHIP ───────────────────────── */
-.agent-status-chip {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 10px; font-weight: 600; padding: 3px 9px;
-  border-radius: 999px; background: var(--bg4);
-  color: var(--txt3); border: 1px solid var(--border);
-  text-transform: uppercase; letter-spacing: .4px;
+/* Approve / reject actions */
+.ae-actions {
+  display: flex; align-items: center; gap: 7px; margin-top: 10px;
+  padding-top: 10px; border-top: 1px solid var(--border2);
 }
-.agent-status-chip.alert   { background: var(--amber-bg); color: var(--amber); border-color: var(--amber-bd); }
-.agent-status-chip.success { background: var(--green-bg); color: var(--green); border-color: var(--green-bd); }
-.chip-dot {
-  width: 5px; height: 5px; border-radius: 50%; background: currentColor;
-  animation: blink 2s infinite;
+.btn-approve {
+  padding: 5px 13px; border-radius: var(--r2); font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: .15s;
+  background: var(--green-bg); border: 1px solid var(--green-bd); color: var(--green);
 }
+.btn-approve:hover { background: var(--green); color: #fff; }
+.btn-reject {
+  padding: 5px 13px; border-radius: var(--r2); font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: .15s;
+  background: var(--red-bg); border: 1px solid var(--red-bd); color: var(--red);
+}
+.btn-reject:hover  { background: var(--red); color: #fff; }
+.btn-details {
+  padding: 5px 11px; border-radius: var(--r2); font-size: 11px;
+  cursor: pointer; background: none; border: 1px solid var(--border);
+  color: var(--txt2); transition: .15s;
+}
+.btn-details:hover { border-color: var(--accent); color: var(--accent2); }
 
-/* ── SPEND / MODEL BARS ──────────────────────── */
-.bar-section {
-  padding: 12px 14px; display: flex; flex-direction: column; gap: 11px;
-}
-.bar-row {}
-.bar-lbl {
-  display: flex; justify-content: space-between;
-  font-size: 12px; margin-bottom: 3px; color: var(--txt2);
-}
-.bar-amt { font-family: var(--mono); font-weight: 600; color: var(--txt); }
-.bar-track { height: 5px; background: var(--bg4); border-radius: 999px; overflow: hidden; }
-.bar-fill  { height: 100%; border-radius: 999px; transition: width .5s ease; opacity: .85; }
-.bar-meta  { font-size: 10px; color: var(--txt3); margin-top: 2px; display: flex; gap: 5px; align-items: center; }
+.ae-approved-badge { font-size: 11px; color: var(--green); font-weight: 600; }
+.ae-rejected-badge { font-size: 11px; color: var(--txt3); }
 
-.tier-chip {
-  font-size: 9px; padding: 0 5px; border-radius: 999px;
-  font-weight: 600; text-transform: uppercase;
-}
-.tier-chip.premium   { background: rgba(239,68,68,.15);  color: var(--red); }
-.tier-chip.standard  { background: rgba(245,158,11,.15); color: var(--amber); }
-.tier-chip.efficient { background: rgba(16,185,129,.15); color: var(--green); }
-
-.model-dot {
-  display: inline-block; width: 6px; height: 6px;
-  border-radius: 50%; margin-right: 3px; vertical-align: middle;
+/* ── EXECUTIVE IMPACT ── */
+.exec-empty {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 80px 30px; color: var(--txt3); font-size: 13px; text-align: center; gap: 8px;
 }
 
-/* ── INTERVENTIONS ───────────────────────────── */
-.intervention-list {
-  padding: 10px; display: flex; flex-direction: column;
-  gap: 7px; max-height: 260px; overflow-y: auto;
-}
-.inv-card {
-  background: var(--bg2); border: 1px solid var(--border2);
-  border-radius: var(--r2); padding: 9px; font-size: 12px;
-}
-.inv-card.inv-critical { border-left: 3px solid var(--red); }
-.inv-card.inv-recommend { border-left: 3px solid var(--accent); }
-
-.inv-head { display: flex; align-items: center; gap: 5px; margin-bottom: 3px; }
-.inv-icon { font-size: 12px; }
-.inv-label { font-size: 10px; font-weight: 700; letter-spacing: .4px; color: var(--txt2); flex: 1; }
-.inv-status {
-  font-size: 9px; padding: 1px 6px; border-radius: 999px;
-  font-weight: 700; text-transform: uppercase;
-}
-.inv-status.applied  { background: var(--green-bg);  color: var(--green); }
-.inv-status.recommend { background: var(--accent-bg); color: var(--accent2); }
-.inv-wf     { color: var(--txt3); font-size: 10px; margin-bottom: 3px; }
-.inv-saving { color: var(--green); font-weight: 700; font-family: var(--mono); }
-.inv-time   { color: var(--txt3); font-size: 10px; font-family: var(--mono); margin-top: 2px; }
-
-/* ── EXECUTIVE SUMMARY ───────────────────────── */
-.exec-content { padding: 14px; }
-.exec-stats {
-  display: grid; grid-template-columns: repeat(4,1fr);
-  gap: 12px; margin-bottom: 16px;
-}
+.exec-stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 16px; }
 .exec-stat {
-  text-align: center; padding: 14px 10px;
-  background: var(--bg2); border-radius: var(--r); border: 1px solid var(--border2);
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: var(--r); padding: 14px; text-align: center;
 }
-.exec-stat-val {
-  font-size: 20px; font-weight: 800; font-family: var(--mono);
-  color: var(--accent2); margin-bottom: 3px;
-}
+.exec-stat.green { border-top: 2px solid var(--green); }
+.exec-stat-val { font-size: 20px; font-weight: 800; font-family: var(--mono); color: var(--accent2); margin-bottom: 3px; }
+.exec-stat.green .exec-stat-val { color: var(--green); }
 .exec-stat-lbl { font-size: 10px; color: var(--txt3); }
 
+.exec-wf-card {
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: var(--r); padding: 16px; margin-bottom: 12px;
+}
+.exec-wf-title  { font-size: 15px; font-weight: 700; margin-bottom: 2px; }
+.exec-wf-type   { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: var(--txt3); margin-bottom: 12px; }
+
+.exec-ba {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px; background: var(--bg); border-radius: var(--r2);
+  border: 1px solid var(--border2); margin-bottom: 10px;
+}
+.exec-ba-col { text-align: center; min-width: 80px; }
+.exec-ba-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: .7px; color: var(--txt3); margin-bottom: 2px; }
+.exec-ba-val { font-size: 15px; font-weight: 800; font-family: var(--mono); }
+.exec-ba-val.hi { color: var(--red); }
+.exec-ba-val.lo { color: var(--green); }
+.exec-ba-arrow  { color: var(--txt3); flex-shrink: 0; }
+.exec-ba-saving {
+  margin-left: auto; padding: 6px 12px;
+  background: var(--green-bg); border-radius: var(--r2); border: 1px solid var(--green-bd);
+  text-align: center;
+}
+.exec-ba-sav-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: .6px; color: var(--green); }
+.exec-ba-sav-val { font-size: 15px; font-weight: 800; color: var(--green); font-family: var(--mono); }
+
 .exec-narrative {
-  padding: 14px; background: var(--bg2); border-radius: var(--r);
-  border: 1px solid var(--border2); font-size: 13px; color: var(--txt2);
-  line-height: 1.75;
+  font-size: 13px; color: var(--txt2); line-height: 1.7;
+  padding: 12px; background: var(--bg2); border-radius: var(--r2);
+  margin-bottom: 10px;
 }
-.exec-narrative p { margin-bottom: 7px; }
-.exec-narrative p:last-child { margin-bottom: 0; }
-.exec-narrative strong { color: var(--txt); }
+.exec-wf-saving { font-size: 13px; font-weight: 700; color: var(--green); font-family: var(--mono); }
 .exec-tagline {
-  font-style: italic; color: var(--accent2) !important;
-  font-size: 13px; border-top: 1px solid var(--border2);
-  padding-top: 10px; margin-top: 4px;
+  font-size: 14px; color: var(--accent2); font-style: italic;
+  padding: 14px 16px; background: var(--accent-bg); border-radius: var(--r);
+  border: 1px solid rgba(99,102,241,.2); margin-top: 4px;
 }
 
-/* ── FOOTER ──────────────────────────────────── */
-.app-footer {
+/* ── DRAWER ── */
+.drawer {
+  position: fixed; top: 52px; right: 0; bottom: 0; width: 380px;
+  background: var(--bg3); border-left: 1px solid var(--border);
+  transform: translateX(100%); transition: transform .28s cubic-bezier(.4,0,.2,1);
+  z-index: 100; display: flex; flex-direction: column;
+}
+.drawer.open { transform: none; }
+.drawer-scrim {
+  display: none; position: fixed; inset: 52px 0 0 0;
+  background: rgba(0,0,0,.35); z-index: 99;
+}
+.drawer-scrim.show { display: block; }
+
+.drawer-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-bottom: 1px solid var(--border2); flex-shrink: 0;
+  font-size: 13px; font-weight: 600; color: var(--txt2);
+}
+.drawer-close {
+  background: none; border: none; color: var(--txt3); cursor: pointer;
+  font-size: 16px; padding: 2px 6px; border-radius: var(--r2); transition: .12s;
+}
+.drawer-close:hover { color: var(--txt); background: var(--bg4); }
+.drawer-body { flex: 1; overflow-y: auto; }
+
+.drawer-section {
+  padding: 14px 16px; border-bottom: 1px solid var(--border2);
+}
+.drawer-section h3 { font-size: 10px; text-transform: uppercase; letter-spacing: .8px; color: var(--txt3); margin-bottom: 8px; }
+
+.drawer-req-id    { font-size: 16px; font-weight: 800; font-family: var(--mono); margin-bottom: 4px; }
+.drawer-req-meta  { display: flex; justify-content: space-between; font-size: 11px; color: var(--txt2); margin-bottom: 6px; }
+.drawer-req-tags  { display: flex; gap: 5px; flex-wrap: wrap; }
+
+.drawer-metric {
   display: flex; justify-content: space-between;
-  padding: 10px 24px; border-top: 1px solid var(--border);
-  font-size: 10px; color: var(--txt3);
-  background: var(--bg2);
+  font-size: 12px; padding: 4px 0; border-bottom: 1px solid var(--border2);
+  color: var(--txt2);
 }
+.drawer-metric:last-child { border-bottom: none; }
+.drawer-metric .key   { color: var(--txt2); }
+.drawer-metric .val-hi  { color: var(--red);   font-weight: 700; font-family: var(--mono); }
+.drawer-metric .val-ok  { color: var(--green); font-weight: 600; }
+.drawer-metric .val-mono{ font-family: var(--mono); font-weight: 600; }
+.tier-premium   { color: var(--red); font-weight: 600; }
+.tier-standard  { color: var(--amber); font-weight: 600; }
+.tier-efficient { color: var(--green); font-weight: 600; }
 
-/* ── UTILITY ─────────────────────────────────── */
-.empty-state { color: var(--txt3); font-size: 12px; text-align: center; padding: 18px; }
+.drawer-diagnosis { font-size: 12px; color: var(--txt2); line-height: 1.7; }
+.drawer-diag-line { margin: 3px 0; color: var(--txt2); }
 
+.drawer-action-name   { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+.drawer-action-desc   { font-size: 12px; color: var(--txt2); margin-bottom: 6px; line-height: 1.6; }
+.drawer-action-saving { font-size: 12px; color: var(--green); font-weight: 600; margin-bottom: 4px; }
+.drawer-action-trade  { font-size: 11px; color: var(--txt3); margin-bottom: 10px; }
+.drawer-action-btns   { display: flex; gap: 7px; margin-top: 10px; }
+
+/* ── SCROLLBARS ── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: var(--txt3); }
 
-/* ── RESPONSIVE ──────────────────────────────── */
-@media (max-width: 1100px) {
-  .main-grid     { grid-template-columns: 1fr; }
-  .analysis-grid { grid-template-columns: 1fr 1fr; }
-  .kpi-bar       { grid-template-columns: repeat(3,1fr); }
-  .exec-stats    { grid-template-columns: repeat(2,1fr); }
-}
-@media (max-width: 760px) {
-  .analysis-grid { grid-template-columns: 1fr; }
-  .kpi-bar       { grid-template-columns: repeat(2,1fr); }
-  .exec-stats    { grid-template-columns: repeat(2,1fr); }
-  .main-grid, .analysis-grid { padding: 8px 12px; }
-  .scenario-runner, .app-header { padding-left: 12px; padding-right: 12px; }
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .sidebar { width: 200px; }
+  .ops-grid { grid-template-columns: 1fr; }
+  .kpi-row  { grid-template-columns: repeat(2,1fr); }
+  .exec-stats-row { grid-template-columns: repeat(2,1fr); }
 }
 
   </style>
 </head>
 <body>
+<div class="app">
 
   <!-- HEADER -->
   <header class="app-header">
-    <div class="header-brand">
-      <div class="brand-icon">⬡</div>
+    <div class="hdr-brand">
+      <span class="brand-hex">⬡</span>
       <div>
         <div class="brand-name">TokenOps Agent</div>
         <div class="brand-sub">AI Cost Intelligence Platform</div>
       </div>
     </div>
-    <div class="header-controls">
-      <div class="live-indicator">
+
+    <nav class="tab-nav" id="tabNav">
+      <button class="tab-btn active" data-tab="operations">Operations</button>
+      <button class="tab-btn" data-tab="agent">
+        Agent Console
+        <span class="tab-badge hidden" id="agentBadge">0</span>
+      </button>
+      <button class="tab-btn" data-tab="executive">Executive Impact</button>
+    </nav>
+
+    <div class="hdr-right">
+      <label class="autoapply-label">
+        <span class="autoapply-text">Auto-apply safe actions</span>
+        <div class="toggle" id="autoApplyToggle" onclick="toggleAutoApply()">
+          <div class="toggle-thumb"></div>
+        </div>
+      </label>
+      <div class="live-chip" id="liveChip">
         <span class="live-dot"></span>
-        <span>Live</span>
+        <span id="liveLabel">Ready</span>
       </div>
-      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">☀ Light</button>
+      <button class="hdr-btn" id="themeBtn" onclick="toggleTheme()">☀</button>
     </div>
   </header>
 
-  <!-- KPI BAR -->
-  <section class="kpi-bar">
-    <div class="kpi-card">
-      <div class="kpi-label">Total Spend</div>
-      <div class="kpi-value" id="kpiTotalSpend">$0.00</div>
-      <div class="kpi-sub" id="kpiSpendRate">$0.00/min</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Requests</div>
-      <div class="kpi-value" id="kpiRequests">0</div>
-      <div class="kpi-sub" id="kpiReqRate">0 req/min</div>
-    </div>
-    <div class="kpi-card" id="kpiAnomalyCard">
-      <div class="kpi-label">Active Anomalies</div>
-      <div class="kpi-value" id="kpiAnomalies">0</div>
-      <div class="kpi-sub">Policies violated</div>
-    </div>
-    <div class="kpi-card kpi-success">
-      <div class="kpi-label">Savings Captured</div>
-      <div class="kpi-value" id="kpiSavings">$0.00</div>
-      <div class="kpi-sub" id="kpiSavingsPct">0% of spend</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Cache Hit Rate</div>
-      <div class="kpi-value" id="kpiCacheRate">0%</div>
-      <div class="kpi-sub" id="kpiCacheHits">0 hits</div>
-    </div>
-  </section>
+  <!-- BODY -->
+  <div class="app-body">
 
-  <!-- SCENARIO RUNNER -->
-  <section class="scenario-runner">
-    <div class="scenario-runner-label">SCENARIO RUNNER</div>
-    <div class="scenario-btns">
-      <button class="scenario-btn bloat" onclick="Scenarios.triggerPromptBloat()">
-        <span>📄</span>
-        <span>Prompt Bloat</span>
-        <span class="scenario-tag">Doc Summarizer</span>
-      </button>
-      <button class="scenario-btn routing" onclick="Scenarios.triggerPremiumOverrouting()">
-        <span>⚡</span>
-        <span>Premium Over-routing</span>
-        <span class="scenario-tag">Support Copilot</span>
-      </button>
-      <button class="scenario-btn retry-storm" onclick="Scenarios.triggerRetryStorm()">
-        <span>🔄</span>
-        <span>Retry Storm</span>
-        <span class="scenario-tag">Proposal Assistant</span>
-      </button>
-      <button class="scenario-btn reset-btn" onclick="Scenarios.reset()">
-        <span>↺</span>
-        <span>Reset</span>
-      </button>
-    </div>
-    <div class="scenario-status-bar" id="scenarioStatusBar"></div>
-  </section>
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sb-label">WORKFLOWS</div>
 
-  <!-- MAIN CONTENT -->
-  <div class="main-grid">
-
-    <!-- Live Request Stream -->
-    <section class="panel">
-      <div class="panel-header">
-        <h2>Live Request Stream</h2>
-        <span class="panel-badge" id="reqCount">0 requests</span>
+      <!-- Support Copilot -->
+      <div class="wf-card" id="card-support-copilot">
+        <div class="wf-card-top">
+          <span class="wf-icon">💬</span>
+          <div class="wf-meta">
+            <div class="wf-name">Support Copilot</div>
+            <div class="wf-owner">team-support · support-ops</div>
+          </div>
+          <span class="wf-dot idle" id="dot-support-copilot"></span>
+        </div>
+        <div class="wf-badge idle" id="badge-support-copilot">IDLE</div>
+        <div class="wf-stats" id="stats-support-copilot">—</div>
+        <button class="wf-btn" id="btn-support-copilot"
+                onclick="WorkflowEngine.toggle('support-copilot')">▶ Run Workflow</button>
       </div>
-      <div class="req-table-wrap">
-        <table class="req-table">
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>Use Case</th>
-              <th>Model</th>
-              <th>Tokens</th>
-              <th>Cost</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="reqTableBody"></tbody>
-        </table>
-      </div>
-    </section>
 
-    <!-- Agent Console -->
-    <section class="panel">
-      <div class="panel-header">
-        <h2>Agent Console</h2>
-        <span class="agent-status-chip" id="agentChip">
-          <span class="chip-dot"></span>Monitoring
-        </span>
+      <!-- Document Assistant -->
+      <div class="wf-card" id="card-doc-summarizer">
+        <div class="wf-card-top">
+          <span class="wf-icon">📄</span>
+          <div class="wf-meta">
+            <div class="wf-name">Document Assistant</div>
+            <div class="wf-owner">team-docs · content-ops</div>
+          </div>
+          <span class="wf-dot idle" id="dot-doc-summarizer"></span>
+        </div>
+        <div class="wf-badge idle" id="badge-doc-summarizer">IDLE</div>
+        <div class="wf-stats" id="stats-doc-summarizer">—</div>
+        <button class="wf-btn" id="btn-doc-summarizer"
+                onclick="WorkflowEngine.toggle('doc-summarizer')">▶ Run Workflow</button>
       </div>
-      <div class="agent-log" id="agentLog">
-        <div class="agent-idle">
-          <div class="agent-idle-icon">🔍</div>
-          <div>Agent monitoring traffic. Trigger a scenario to see it in action.</div>
+
+      <!-- Proposal Assistant -->
+      <div class="wf-card" id="card-proposal-assistant">
+        <div class="wf-card-top">
+          <span class="wf-icon">📋</span>
+          <div class="wf-meta">
+            <div class="wf-name">Proposal Assistant</div>
+            <div class="wf-owner">team-sales · sales-enablement</div>
+          </div>
+          <span class="wf-dot idle" id="dot-proposal-assistant"></span>
+        </div>
+        <div class="wf-badge idle" id="badge-proposal-assistant">IDLE</div>
+        <div class="wf-stats" id="stats-proposal-assistant">—</div>
+        <button class="wf-btn" id="btn-proposal-assistant"
+                onclick="WorkflowEngine.toggle('proposal-assistant')">▶ Run Workflow</button>
+      </div>
+
+      <div class="sb-divider"></div>
+      <div class="sb-label">POLICIES</div>
+
+      <div class="policy-row">
+        <span class="policy-dot ok" id="pdot-DOC-COST-001"></span>
+        <div>
+          <div class="policy-id">DOC-COST-001</div>
+          <div class="policy-desc">Max $0.08/summarization req</div>
         </div>
       </div>
-    </section>
-
-  </div>
-
-  <!-- ANALYSIS ROW -->
-  <div class="analysis-grid">
-
-    <!-- Spend by Use Case -->
-    <section class="panel">
-      <div class="panel-header"><h2>Spend by Use Case</h2></div>
-      <div class="bar-section" id="spendBars">
-        <div class="empty-state">Waiting for traffic…</div>
+      <div class="policy-row">
+        <span class="policy-dot ok" id="pdot-ROUTE-COST-002"></span>
+        <div>
+          <div class="policy-id">ROUTE-COST-002</div>
+          <div class="policy-desc">Model must match complexity</div>
+        </div>
       </div>
-    </section>
-
-    <!-- Model Distribution -->
-    <section class="panel">
-      <div class="panel-header"><h2>Model Distribution</h2></div>
-      <div class="bar-section" id="modelBars">
-        <div class="empty-state">Waiting for traffic…</div>
+      <div class="policy-row">
+        <span class="policy-dot ok" id="pdot-RETRY-GUARD-001"></span>
+        <div>
+          <div class="policy-id">RETRY-GUARD-001</div>
+          <div class="policy-desc">Max 3 retries per request</div>
+        </div>
       </div>
-    </section>
 
-    <!-- Interventions -->
-    <section class="panel">
-      <div class="panel-header"><h2>Interventions</h2></div>
-      <div class="intervention-list" id="interventionList">
-        <div class="empty-state">No interventions yet</div>
+      <div class="sb-divider"></div>
+      <button class="reset-btn" onclick="App.reset()">↺ Reset Session</button>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+
+      <!-- TAB: OPERATIONS -->
+      <div class="tab-panel active" id="tab-operations">
+        <div class="kpi-row">
+          <div class="kpi">
+            <div class="kpi-lbl">Total Spend</div>
+            <div class="kpi-val" id="kpiSpend">$0.00</div>
+            <div class="kpi-sub" id="kpiReqRate">0 req/min</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-lbl">Requests</div>
+            <div class="kpi-val" id="kpiReqs">0</div>
+            <div class="kpi-sub" id="kpiCacheRate">0% cache</div>
+          </div>
+          <div class="kpi kpi-warn" id="kpiAlertCard" onclick="UI.switchTab('agent')" style="cursor:pointer">
+            <div class="kpi-lbl">Policy Alerts</div>
+            <div class="kpi-val" id="kpiAlerts">0</div>
+            <div class="kpi-sub">Click to inspect →</div>
+          </div>
+          <div class="kpi kpi-green">
+            <div class="kpi-lbl">Savings Captured</div>
+            <div class="kpi-val" id="kpiSavings">$0.00</div>
+            <div class="kpi-sub" id="kpiSavingsPct">—</div>
+          </div>
+        </div>
+
+        <div class="ops-grid">
+          <div class="panel">
+            <div class="panel-hdr">
+              <h2>Live Request Stream</h2>
+              <span class="panel-badge" id="streamCount">0 requests</span>
+            </div>
+            <div class="tbl-wrap">
+              <table class="req-tbl">
+                <thead><tr>
+                  <th>Time</th><th>Workflow</th><th>Model</th>
+                  <th>Tokens</th><th>Cost</th><th>Status</th><th></th>
+                </tr></thead>
+                <tbody id="reqBody">
+                  <tr><td colspan="7" class="empty-cell">Run a workflow to see live requests</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-hdr"><h2>Active Alerts</h2></div>
+            <div id="alertsList"><div class="empty-cell" style="padding:18px">No alerts</div></div>
+          </div>
+        </div>
       </div>
-    </section>
 
-  </div>
+      <!-- TAB: AGENT CONSOLE -->
+      <div class="tab-panel" id="tab-agent">
+        <div class="agent-toolbar">
+          <span class="agent-toolbar-lbl">Agent observing all running workflows</span>
+          <label class="inline-toggle">
+            <input type="checkbox" id="autoApplyCb" onchange="toggleAutoApply()">
+            <span>Auto-apply safe actions</span>
+          </label>
+        </div>
+        <div class="agent-feed" id="agentFeed">
+          <div class="agent-idle">
+            <div class="agent-idle-ico">🔍</div>
+            <div>Start a workflow to see the agent in action.</div>
+          </div>
+        </div>
+      </div>
 
-  <!-- EXECUTIVE SUMMARY -->
-  <section class="panel exec-panel">
-    <div class="panel-header">
-      <h2>Executive Summary</h2>
-      <span class="panel-badge">Live</span>
+      <!-- TAB: EXECUTIVE IMPACT -->
+      <div class="tab-panel" id="tab-executive">
+        <div id="execContent">
+          <div class="exec-empty">
+            <div style="font-size:32px;margin-bottom:10px">📊</div>
+            <div>Run a workflow and approve an optimization to see the impact summary.</div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div><!-- /app-body -->
+
+  <!-- DRAWER -->
+  <div class="drawer" id="drawer">
+    <div class="drawer-hdr">
+      <span id="drawerTitle">Inspection</span>
+      <button class="drawer-close" onclick="Drawer.close()">✕</button>
     </div>
-    <div class="exec-content" id="execContent">
-      <div class="empty-state">Summary will appear once traffic is established.</div>
-    </div>
-  </section>
+    <div class="drawer-body" id="drawerBody"></div>
+  </div>
+  <div class="drawer-scrim" id="drawerScrim" onclick="Drawer.close()"></div>
 
-  <footer class="app-footer">
-    <span>TokenOps Agent v1.0 — Prototype</span>
-    <span>Simulated environment · not connected to production APIs</span>
-  </footer>
-
-  <script>
+</div><!-- /app -->
+<script>
 'use strict';
 
 // ════════════════════════════════════════════════════════
-// CONSTANTS & CONFIGURATION
+// MODELS & WORKFLOW CONFIG
 // ════════════════════════════════════════════════════════
 
-const MODEL_PRICING = {
-  'claude-opus':    { input: 0.015,    output: 0.075,   label: 'Claude Opus',    tier: 'premium'   },
-  'claude-sonnet':  { input: 0.003,    output: 0.015,   label: 'Claude Sonnet',  tier: 'standard'  },
-  'claude-haiku':   { input: 0.00025,  output: 0.00125, label: 'Claude Haiku',   tier: 'efficient' },
-  'gpt-4o':         { input: 0.005,    output: 0.015,   label: 'GPT-4o',         tier: 'premium'   },
-  'gpt-4o-mini':    { input: 0.00015,  output: 0.0006,  label: 'GPT-4o Mini',    tier: 'efficient' },
+const MODELS = {
+  'claude-opus':   { label:'Claude Opus',   tier:'premium',   input:0.015,   output:0.075   },
+  'claude-sonnet': { label:'Claude Sonnet', tier:'standard',  input:0.003,   output:0.015   },
+  'claude-haiku':  { label:'Claude Haiku',  tier:'efficient', input:0.00025, output:0.00125 },
+  'gpt-4o':        { label:'GPT-4o',        tier:'premium',   input:0.005,   output:0.015   },
+  'gpt-4o-mini':   { label:'GPT-4o Mini',   tier:'efficient', input:0.00015, output:0.0006  },
 };
 
-const USE_CASES = {
+const WF_CFG = {
   'support-copilot': {
-    label:          'Support Copilot',
-    icon:           '💬',
-    color:          '#6366f1',
-    defaultModel:   'claude-haiku',
-    inputRange:     [140, 310],
-    outputRange:    [55, 130],
-    cacheRate:      0.42,
-    rateWeight:     12,
-    owner:          'team-support',
-    budget:         'support-ops',
-    complexityRange:[0.08, 0.42],
+    name:'Support Copilot', icon:'💬', color:'#6366f1',
+    defaultModel:'claude-haiku', scenarioModel:'claude-opus', optimizedModel:'claude-haiku',
+    inputRange:[140,310], outputRange:[55,130], complexityRange:[0.08,0.40],
+    tickMs:1100, warmupCount:3, scenarioTrigger:5,
+    scenario:'premium-overrouting', policy:'ROUTE-COST-002',
+    autoApplySafe:true,
+    narratives:{
+      detection:'Claude Opus is being used for requests with complexity score < 0.20 — FAQ and greeting classification that does not require frontier reasoning.',
+      action:'Routing policy updated: low-complexity traffic (score < 0.40) redirected to Claude Haiku. Opus retained for escalations and complex multi-turn queries.',
+      tradeoff:'A/B testing shows < 2% difference in user satisfaction on FAQ intent.',
+    },
   },
   'doc-summarizer': {
-    label:          'Document Summarizer',
-    icon:           '📄',
-    color:          '#8b5cf6',
-    defaultModel:   'claude-sonnet',
-    inputRange:     [680, 1300],
-    outputRange:    [180, 360],
-    cacheRate:      0.18,
-    rateWeight:     7,
-    owner:          'team-docs',
-    budget:         'content-ops',
-    complexityRange:[0.30, 0.72],
+    name:'Document Assistant', icon:'📄', color:'#8b5cf6',
+    defaultModel:'claude-sonnet', scenarioModel:'claude-sonnet', optimizedModel:'claude-sonnet',
+    inputRange:[680,1300], outputRange:[180,360], complexityRange:[0.30,0.72],
+    tickMs:1400, warmupCount:3, scenarioTrigger:3,
+    scenario:'prompt-bloat', policy:'DOC-COST-001',
+    autoApplySafe:false,
+    narratives:{
+      detection:'Full document bodies (4,000–6,000 tokens) are being passed as context instead of pre-chunked sections, breaching the 1,500-token policy ceiling.',
+      action:'Input context trimmed to 1,500 tokens. Sliding-window summarization enabled for documents exceeding 2,000 tokens. Output cap set to 300 tokens.',
+      tradeoff:'Summaries may omit tertiary sections. Core content and conclusions are preserved.',
+    },
   },
   'proposal-assistant': {
-    label:          'Proposal Assistant',
-    icon:           '📋',
-    color:          '#ec4899',
-    defaultModel:   'claude-sonnet',
-    inputRange:     [380, 720],
-    outputRange:    [550, 1100],
-    cacheRate:      0.09,
-    rateWeight:     4,
-    owner:          'team-sales',
-    budget:         'sales-enablement',
-    complexityRange:[0.50, 0.92],
+    name:'Proposal Assistant', icon:'📋', color:'#ec4899',
+    defaultModel:'claude-sonnet', scenarioModel:'claude-sonnet', optimizedModel:'claude-sonnet',
+    inputRange:[380,720], outputRange:[550,1100], complexityRange:[0.50,0.92],
+    tickMs:1600, warmupCount:2, scenarioTrigger:3,
+    scenario:'retry-storm', policy:'RETRY-GUARD-001',
+    autoApplySafe:true,
+    narratives:{
+      detection:'Tool call timeout on knowledge-base API triggered a retry loop. Retries multiplied spend with no output value.',
+      action:'Circuit breaker engaged. Workflow paused. Request queued for review. Owner alerted with root-cause summary.',
+      tradeoff:'Workflow paused until manually resumed. Prevents unlimited spend escalation.',
+    },
   },
-};
-
-const THRESHOLDS = {
-  promptBloat:    2100,   // input tokens above which a doc-summarizer req is bloated
-  bloatTrigger:   3,      // consecutive bloated requests before agent fires
-  premiumTrigger: 5,      // consecutive premium-on-simple reqs before agent fires
-  retryBreaker:   3,      // retries before circuit breaker engages
-  maxTableRows:   22,
-  maxAgentEntries:25,
 };
 
 // ════════════════════════════════════════════════════════
@@ -674,585 +804,586 @@ const THRESHOLDS = {
 // ════════════════════════════════════════════════════════
 
 const S = {
-  requests:       [],
-  interventions:  [],
-  metrics: {
-    totalSpend:   0,
-    totalReqs:    0,
-    cacheHits:    0,
-    anomalies:    0,
-    savings:      0,
-    spendByUC:    {},
-    spendByModel: {},
-    reqsByUC:     {},
-  },
-  scenarios: {
-    bloatActive:    false,
-    premiumActive:  false,
-    retryActive:    false,
-  },
-  requestSeq:     1,
-  lastMinReqs:    [],
-  simTimer:       null,
-  startTime:      Date.now(),
+  autoApply: false,
+  workflows: mkAllWF(),
+  requests:  [],
+  alerts:    [],
+  entries:   [],         // agent console entries
+  approvals: new Map(),  // id → approval object
+  metrics: { spend:0, reqs:0, cache:0, alerts:0, savings:0 },
+  reqSeq: 1,
+  minReqs: [],           // timestamps for req/min
 };
 
-Object.keys(USE_CASES).forEach(id => {
-  S.metrics.spendByUC[id]  = 0;
-  S.metrics.reqsByUC[id]   = 0;
-});
+function mkWF() {
+  return {
+    status:'idle', timer:null,
+    reqs:0, spend:0, tickN:0,
+    phase:'idle',         // idle | warmup | scenario | optimized
+    scenarioHits:0, agentFired:false,
+    retryBase:null, retryCount:0,
+    baseline:null,        // {reqs,spend,avgCost} captured before scenario
+    approvalId:null,
+  };
+}
+function mkAllWF() {
+  const o={};
+  Object.keys(WF_CFG).forEach(id => o[id]=mkWF());
+  return o;
+}
 
 // ════════════════════════════════════════════════════════
 // UTILITIES
 // ════════════════════════════════════════════════════════
 
-const rnd  = (lo, hi) => Math.random() * (hi - lo) + lo;
-const rndI = (lo, hi) => Math.floor(rnd(lo, hi + 1));
+const rnd  = (a,b) => Math.random()*(b-a)+a;
+const rndI = (a,b) => Math.floor(rnd(a,b+1));
+const q    = id  => document.getElementById(id);
 
 function calcCost(model, inTok, outTok) {
-  const p = MODEL_PRICING[model];
-  return (inTok / 1000) * p.input + (outTok / 1000) * p.output;
+  const m = MODELS[model];
+  return (inTok/1000)*m.input + (outTok/1000)*m.output;
 }
 
-const fmtMoney = n => {
-  if (n >= 10)  return '$' + n.toFixed(2);
-  if (n >= 0.01) return '$' + n.toFixed(2);
-  return '$' + n.toFixed(4);
+const fmtUSD  = n => n >= 0.01 ? '$'+n.toFixed(2) : '$'+n.toFixed(4);
+const fmtTok  = n => n >= 1000 ? (n/1000).toFixed(1)+'K' : ''+n;
+const fmtTime = d => d.toLocaleTimeString('en-US',{hour12:false});
+const nextId  = () => 'REQ-'+String(S.reqSeq++).padStart(4,'0');
+const nextAP  = () => 'AP-'+Math.floor(Math.random()*9000+1000);
+
+// ════════════════════════════════════════════════════════
+// WORKFLOW ENGINE
+// ════════════════════════════════════════════════════════
+
+const WorkflowEngine = {
+  toggle(id) {
+    const wf = S.workflows[id];
+    if (wf.status === 'paused')                    this.resume(id);
+    else if (wf.status==='idle')                   this.run(id);
+    else                                            this.stop(id);
+  },
+
+  run(id) {
+    const wf=S.workflows[id], cfg=WF_CFG[id];
+    wf.status='running'; wf.phase='warmup';
+    wf.tickN=0; wf.scenarioHits=0; wf.agentFired=false;
+    wf.retryBase=null; wf.retryCount=0;
+    UI.setWFStatus(id,'running');
+    UI.setLive(true);
+    this._schedule(id);
+  },
+
+  stop(id) {
+    const wf=S.workflows[id];
+    clearTimeout(wf.timer); wf.timer=null;
+    wf.status='idle'; wf.phase='idle';
+    UI.setWFStatus(id,'idle');
+    if (!Object.values(S.workflows).some(w=>w.status==='running'||w.status==='anomaly'||w.status==='optimized'))
+      UI.setLive(false);
+  },
+
+  resume(id) {
+    const wf=S.workflows[id];
+    wf.status='optimized'; wf.phase='optimized';
+    UI.setWFStatus(id,'optimized');
+    this._schedule(id);
+  },
+
+  _schedule(id) {
+    const wf=S.workflows[id], cfg=WF_CFG[id];
+    const tick = () => {
+      if (!['running','anomaly','optimized'].includes(wf.status)) return;
+      this._tick(id);
+      wf.timer = setTimeout(tick, rnd(.85,1.3)*cfg.tickMs);
+    };
+    wf.timer = setTimeout(tick, 250);
+  },
+
+  _tick(id) {
+    const wf=S.workflows[id], cfg=WF_CFG[id];
+    wf.tickN++;
+
+    if (cfg.scenario==='retry-storm') { this._tickRetry(id); return; }
+
+    if (wf.phase==='warmup') {
+      Gateway.process(this._normalReq(id));
+      if (wf.tickN >= cfg.warmupCount) {
+        wf.phase='scenario';
+        wf.baseline = { reqs:wf.reqs, spend:wf.spend, avgCost: wf.reqs>0 ? wf.spend/wf.reqs : 0 };
+      }
+      return;
+    }
+    if (wf.phase==='scenario') {
+      const req = this._scenarioReq(id);
+      Gateway.process(req);
+      wf.scenarioHits++;
+      if (wf.scenarioHits >= cfg.scenarioTrigger && !wf.agentFired) {
+        wf.agentFired=true;
+        setTimeout(()=>Agent.fire(id,req), rnd(900,1800));
+      }
+      return;
+    }
+    if (wf.phase==='optimized') {
+      Gateway.process(this._optimizedReq(id));
+    }
+  },
+
+  _tickRetry(id) {
+    const wf=S.workflows[id], cfg=WF_CFG[id];
+    if (wf.phase==='warmup') {
+      Gateway.process(this._normalReq(id));
+      if (wf.tickN >= cfg.warmupCount) {
+        wf.phase='scenario';
+        wf.baseline={ reqs:wf.reqs, spend:wf.spend, avgCost: wf.reqs>0?wf.spend/wf.reqs:0 };
+        wf.retryBase = this._normalReq(id);
+        wf.retryBase.status='retrying'; wf.retryBase.flagged=true;
+        Gateway.process(wf.retryBase);
+      }
+      return;
+    }
+    if (wf.phase==='scenario' && wf.retryBase) {
+      wf.retryCount++;
+      const r = {
+        ...wf.retryBase, id:nextId(), ts:new Date(),
+        retries:wf.retryCount,
+        cost:wf.retryBase.cost*(1+wf.retryCount*.10),
+        status: wf.retryCount >= cfg.scenarioTrigger ? 'circuit' : 'retrying',
+        flagged:true,
+      };
+      Gateway.process(r);
+      if (wf.retryCount >= cfg.scenarioTrigger && !wf.agentFired) {
+        wf.agentFired=true;
+        setTimeout(()=>Agent.fire(id,r), 700);
+      }
+    }
+  },
+
+  _normalReq(id) {
+    const cfg=WF_CFG[id], model=cfg.defaultModel;
+    const inTok=rndI(...cfg.inputRange), outTok=rndI(...cfg.outputRange);
+    const cache=Math.random()<.24;
+    return { id:nextId(), ts:new Date(), wfId:id, model, inTok, outTok,
+      cost: cache?calcCost(model,0,outTok)*.08:calcCost(model,inTok,outTok),
+      latency:rndI(200,1800), retries:0, cache, status:'ok', flagged:false, phase:'normal',
+      complexity:rnd(...cfg.complexityRange) };
+  },
+
+  _scenarioReq(id) {
+    const cfg=WF_CFG[id];
+    if (cfg.scenario==='prompt-bloat') {
+      const inTok=rndI(3700,6300), outTok=rndI(260,470), model=cfg.scenarioModel;
+      return { id:nextId(), ts:new Date(), wfId:id, model, inTok, outTok,
+        cost:calcCost(model,inTok,outTok), latency:rndI(700,2600),
+        retries:0, cache:false, status:'flagged', flagged:true, phase:'scenario',
+        anomaly:'prompt-bloat', complexity:rnd(.30,.72) };
+    }
+    if (cfg.scenario==='premium-overrouting') {
+      const model=cfg.scenarioModel;
+      const inTok=rndI(...cfg.inputRange), outTok=rndI(...cfg.outputRange);
+      return { id:nextId(), ts:new Date(), wfId:id, model, inTok, outTok,
+        cost:calcCost(model,inTok,outTok), latency:rndI(200,700),
+        retries:0, cache:false, status:'flagged', flagged:true, phase:'scenario',
+        anomaly:'premium-overrouting', complexity:rnd(.08,.20) };
+    }
+    return this._normalReq(id);
+  },
+
+  _optimizedReq(id) {
+    const cfg=WF_CFG[id], model=cfg.optimizedModel;
+    if (cfg.scenario==='prompt-bloat') {
+      const inTok=rndI(950,1500), outTok=rndI(160,300);
+      return { id:nextId(), ts:new Date(), wfId:id, model, inTok, outTok,
+        cost:calcCost(model,inTok,outTok), latency:rndI(300,1100),
+        retries:0, cache:Math.random()<.42, status:'optimized', flagged:false, phase:'optimized',
+        complexity:rnd(.30,.72) };
+    }
+    if (cfg.scenario==='premium-overrouting') {
+      const inTok=rndI(...cfg.inputRange), outTok=rndI(...cfg.outputRange);
+      return { id:nextId(), ts:new Date(), wfId:id, model, inTok, outTok,
+        cost:calcCost(model,inTok,outTok), latency:rndI(180,600),
+        retries:0, cache:Math.random()<.38, status:'optimized', flagged:false, phase:'optimized',
+        complexity:rnd(...cfg.complexityRange) };
+    }
+    return this._normalReq(id);
+  },
+
+  activateOptimized(id) {
+    const wf=S.workflows[id], cfg=WF_CFG[id];
+    clearTimeout(wf.timer);
+    if (cfg.scenario==='retry-storm') {
+      wf.status='paused'; wf.phase='optimized';
+      UI.setWFStatus(id,'paused');
+      return;
+    }
+    wf.status='optimized'; wf.phase='optimized';
+    UI.setWFStatus(id,'optimized');
+    this._schedule(id);
+  },
 };
 
-const fmtTok = n => n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n);
-
-const fmtTime = d => d.toLocaleTimeString('en-US', { hour12: false });
-
-const nextId = () => 'REQ-' + String(S.requestSeq++).padStart(4, '0');
-
 // ════════════════════════════════════════════════════════
-// SIMULATION ENGINE
+// GATEWAY
 // ════════════════════════════════════════════════════════
 
-// Build a weighted pool of use-case IDs
-function buildPool() {
-  const pool = [];
-  Object.entries(USE_CASES).forEach(([id, uc]) => {
-    for (let i = 0; i < uc.rateWeight; i++) pool.push(id);
-  });
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
-  }
-  return pool;
-}
+const Gateway = {
+  process(req) {
+    S.requests.unshift(req);
+    if (S.requests.length>200) S.requests.pop();
 
-let _pool = buildPool();
-let _poolIdx = 0;
+    const m=S.metrics;
+    m.spend+=req.cost; m.reqs++;
+    if (req.cache) m.cache++;
+    S.minReqs.push(Date.now());
+    S.minReqs = S.minReqs.filter(t=>Date.now()-t<60000);
 
-function pickUseCase() {
-  if (_poolIdx >= _pool.length) { _pool = buildPool(); _poolIdx = 0; }
-  return _pool[_poolIdx++];
-}
+    const wf=S.workflows[req.wfId];
+    wf.reqs++; wf.spend+=req.cost;
 
-function makeRequest(ucId, overrides = {}) {
-  const uc      = USE_CASES[ucId];
-  const model   = uc.defaultModel;
-  const inTok   = rndI(...uc.inputRange);
-  const outTok  = rndI(...uc.outputRange);
-  const cache   = Math.random() < uc.cacheRate;
-  const cost    = cache ? calcCost(model, 0, outTok) * 0.08 : calcCost(model, inTok, outTok);
+    UI.addReqRow(req);
+    UI.refreshKPIs();
+    UI.refreshWFCard(req.wfId);
+  },
 
-  return {
-    id:          nextId(),
-    ts:          new Date(),
-    ucId,
-    model,
-    inTok,
-    outTok,
-    latency:     rndI(180, 1900),
-    retries:     0,
-    cache,
-    complexity:  rnd(...uc.complexityRange),
-    cost,
-    status:      'ok',
-    flagged:     false,
-    ...overrides,
-  };
-}
+  addAlert(a) {
+    S.alerts = S.alerts.filter(x=>x.id!==a.id);
+    S.alerts.unshift(a);
+    S.metrics.alerts = S.alerts.filter(x=>!x.cleared&&x.type==='crit').length;
+    UI.refreshAlerts();
+    UI.refreshKPIs();
+  },
 
-function tick() {
-  if (!S.simTimer) return; // paused
-  const ucId = pickUseCase();
-
-  let req;
-  if (S.scenarios.bloatActive    && ucId === 'doc-summarizer')    req = makeBloatReq();
-  else if (S.scenarios.premiumActive && ucId === 'support-copilot') req = makePremiumReq();
-  else req = makeRequest(ucId);
-
-  processRequest(req);
-
-  const delay = rnd(700, 1500);
-  S.simTimer = setTimeout(tick, delay);
-}
-
-function startSim() {
-  S.simTimer = setTimeout(tick, 400);
-}
-
-function stopSim() {
-  clearTimeout(S.simTimer);
-  S.simTimer = null;
-}
+  clearAlert(id) {
+    const a=S.alerts.find(x=>x.id===id);
+    if (a) { a.cleared=true; }
+    S.metrics.alerts = S.alerts.filter(x=>!x.cleared&&x.type==='crit').length;
+    UI.refreshAlerts();
+    UI.refreshKPIs();
+  },
+};
 
 // ════════════════════════════════════════════════════════
-// GATEWAY — central request processing
-// ════════════════════════════════════════════════════════
-
-function processRequest(req) {
-  S.requests.unshift(req);
-  if (S.requests.length > 200) S.requests.pop();
-
-  const m = S.metrics;
-  m.totalSpend                += req.cost;
-  m.totalReqs++;
-  m.spendByUC[req.ucId]       = (m.spendByUC[req.ucId]   || 0) + req.cost;
-  m.spendByModel[req.model]   = (m.spendByModel[req.model]|| 0) + req.cost;
-  m.reqsByUC[req.ucId]        = (m.reqsByUC[req.ucId]     || 0) + 1;
-  if (req.cache) m.cacheHits++;
-
-  S.lastMinReqs.push(Date.now());
-  S.lastMinReqs = S.lastMinReqs.filter(t => Date.now() - t < 60000);
-
-  UI.addReqRow(req);
-  UI.refreshKPIs();
-  UI.refreshCharts();
-
-  setTimeout(() => Agent.analyze(req), rnd(900, 2000));
-}
-
-// ════════════════════════════════════════════════════════
-// AGENT — pattern detection + interventions
+// AGENT
 // ════════════════════════════════════════════════════════
 
 const Agent = {
-  bloatStreak:       0,
-  premiumStreak:     0,
-  bloatFired:        false,
-  premiumFired:      false,
-  retryFired:        false,
+  fire(wfId, triggerReq) {
+    const cfg=WF_CFG[wfId], wf=S.workflows[wfId];
+    wf.status='anomaly';
+    UI.setWFStatus(wfId,'anomaly');
+    UI.setPolicyViolated(cfg.policy, true);
 
-  analyze(req) {
-    // Prompt bloat detection
-    if (req.ucId === 'doc-summarizer' && req.inTok > THRESHOLDS.promptBloat) {
-      this.bloatStreak++;
-      if (this.bloatStreak >= THRESHOLDS.bloatTrigger && !this.bloatFired) {
-        this.bloatFired = true;
-        this._onPromptBloat(req);
-      }
-    } else if (req.ucId === 'doc-summarizer') {
-      this.bloatStreak = Math.max(0, this.bloatStreak - 0.5);
+    const entry = this._buildEntry(wfId, triggerReq);
+    if (!entry) return;
+
+    Gateway.addAlert({ id:'A-'+wfId, wfId, type:'crit',
+      title: entry.alertTitle, msg: entry.alertMsg, ts:new Date(), cleared:false });
+
+    // Auto-apply if: it's a safe action AND (global auto-apply ON or it's retry-storm safety)
+    const doAuto = (cfg.autoApplySafe && S.autoApply) || cfg.scenario==='retry-storm';
+
+    if (doAuto) {
+      entry.actionType='autonomous';
+      this._addEntry(entry);
+      setTimeout(()=>this._execute(wfId,entry), 1000);
+    } else {
+      entry.actionType='approval-required';
+      entry.approvalId = nextAP();
+      S.approvals.set(entry.approvalId, { id:entry.approvalId, wfId, entry, status:'pending' });
+      wf.approvalId = entry.approvalId;
+      this._addEntry(entry);
+      UI.showBadge(S.entries.filter(e=>e.actionType==='approval-required'&&e.approved==null).length);
     }
 
-    // Premium over-routing detection
-    if (req.ucId === 'support-copilot' &&
-        MODEL_PRICING[req.model].tier === 'premium' &&
-        req.complexity < 0.35) {
-      this.premiumStreak++;
-      if (this.premiumStreak >= THRESHOLDS.premiumTrigger && !this.premiumFired) {
-        this.premiumFired = true;
-        this._onPremiumOverrouting(req);
-      }
-    } else if (req.ucId === 'support-copilot' && MODEL_PRICING[req.model].tier !== 'premium') {
-      this.premiumStreak = Math.max(0, this.premiumStreak - 0.5);
+    UI.switchTab('agent');
+  },
+
+  approve(apId) {
+    const ap=S.approvals.get(apId);
+    if (!ap||ap.status!=='pending') return;
+    ap.status='approved'; ap.entry.approved=true;
+    UI.updateEntry(ap.entry);
+    this._execute(ap.wfId, ap.entry);
+    UI.hideBadge();
+    Drawer.close();
+  },
+
+  reject(apId) {
+    const ap=S.approvals.get(apId);
+    if (!ap||ap.status!=='pending') return;
+    ap.status='rejected'; ap.entry.approved=false;
+    // Restore workflow to running
+    const wf=S.workflows[ap.wfId];
+    wf.status='running'; wf.phase='scenario';
+    UI.setWFStatus(ap.wfId,'running');
+    UI.updateEntry(ap.entry);
+    UI.hideBadge();
+    UI.setPolicyViolated(WF_CFG[ap.wfId].policy, false);
+    Drawer.close();
+  },
+
+  _execute(wfId, entry) {
+    const cfg=WF_CFG[wfId], wf=S.workflows[wfId];
+    Gateway.clearAlert('A-'+wfId);
+    UI.setPolicyViolated(cfg.policy, false);
+
+    // Applied entry
+    const applied = {
+      id: entry.id+'-applied', type:'applied', ts:new Date(),
+      title: entry.appliedTitle, workflow:cfg.name,
+      lines: entry.appliedLines, comparison: entry.comparison,
+    };
+    this._addEntry(applied);
+
+    S.metrics.savings += entry.projectedSavings;
+
+    wf.baseline = wf.baseline || { reqs:wf.reqs, spend:wf.spend, avgCost:wf.reqs>0?wf.spend/wf.reqs:0 };
+    wf.spendAtOpt = wf.spend;
+    wf.reqsAtOpt  = wf.reqs;
+
+    WorkflowEngine.activateOptimized(wfId);
+    UI.refreshKPIs();
+    setTimeout(()=>UI.refreshExec(), 1800);
+  },
+
+  _addEntry(entry) {
+    S.entries.unshift(entry);
+    UI.addAgentEntry(entry);
+  },
+
+  _buildEntry(wfId, req) {
+    const cfg=WF_CFG[wfId];
+    const s=cfg.scenario;
+
+    if (s==='prompt-bloat') {
+      const avgIn   = rndI(4400,5900);
+      const base    = calcCost('claude-sonnet',950,270);
+      const cur     = calcCost('claude-sonnet',avgIn,360);
+      const daily   = (cur-base)*80;
+      return {
+        id:'AE-bloat-'+Date.now(), type:'anomaly', ts:new Date(),
+        title:'PROMPT BLOAT DETECTED', workflow:cfg.name,
+        alertTitle:'Prompt bloat — Document Assistant',
+        alertMsg:`Input tokens averaging ${fmtTok(avgIn)} vs 1,500 policy ceiling.`,
+        lines:[
+          `${cfg.scenarioTrigger} consecutive requests exceeded policy ceiling.`,
+          `Average input: ${fmtTok(avgIn)} tokens — policy max: 1,500 tokens.`,
+          `Cost per request: ${fmtUSD(cur)} — ${(cur/base).toFixed(1)}× above baseline.`,
+          `Policy violated: DOC-COST-001 (Max $0.08 per summarization request).`,
+        ],
+        suggestedAction:{
+          name:'Context Pruning + Output Cap',
+          desc:'Trim input to 1,500 tokens. Apply sliding-window summarization for long documents.',
+          saving:`${fmtUSD(cur-base)}/request (74% reduction)`,
+          tradeoff:'Summary may omit tertiary sections. Core content preserved.',
+        },
+        comparison:{
+          before:{val:fmtUSD(cur),  sub:`${fmtTok(avgIn)} input tokens`},
+          after: {val:fmtUSD(base), sub:'~1,200 tokens (trimmed)'},
+          label:'Projected daily savings', saving:fmtUSD(daily),
+        },
+        projectedSavings:daily*.3,
+        appliedTitle:'OPTIMIZATION APPLIED — CONTEXT PRUNING',
+        appliedLines:[
+          `Input context trimmed to 1,500 tokens per request.`,
+          `Output cap set to 300 tokens.`,
+          `Per-request cost: ${fmtUSD(cur)} → ${fmtUSD(base)} (74% reduction).`,
+        ],
+      };
     }
-  },
 
-  // ── Prompt Bloat handler ─────────────────────
-  _onPromptBloat(trigger) {
-    S.metrics.anomalies++;
-
-    const avgIn    = rndI(4400, 5900);
-    const baseline = calcCost('claude-sonnet', 950, 270);
-    const current  = calcCost('claude-sonnet', avgIn, 360);
-    const dailyWaste = (current - baseline) * USE_CASES['doc-summarizer'].rateWeight * 60 * 8;
-
-    UI.addAgentEntry({
-      type:     'anomaly',
-      ts:       new Date(),
-      title:    'ANOMALY DETECTED — PROMPT BLOAT',
-      workflow: 'Document Summarizer',
-      reqId:    trigger.id,
-      lines: [
-        `Input token volume exceeded threshold on 3 consecutive requests.`,
-        `Average input size: ${fmtTok(avgIn)} tokens (policy ceiling: 1,500 tokens).`,
-        `Current cost per request: ${fmtMoney(current)} — ${(current / baseline).toFixed(1)}× above baseline.`,
-        `Likely cause: Full document bodies passed as context instead of pre-chunked sections.`,
-        `Estimated daily excess spend at current rate: ${fmtMoney(dailyWaste)}.`,
-      ],
-    });
-
-    setTimeout(() => {
-      const saving = current - baseline;
-
-      UI.addAgentEntry({
-        type:     'recommend',
-        ts:       new Date(),
-        title:    'RECOMMENDATION — CONTEXT PRUNING',
-        workflow: 'Document Summarizer',
-        reqId:    trigger.id,
-        lines: [
-          `Recommended action: Trim input context to 1,500 tokens before model call.`,
-          `Apply sliding-window summarization for documents exceeding 2,000 tokens.`,
-          '',
-          `Expected savings: 74% reduction in per-request cost.`,
-          `After intervention: ${fmtMoney(baseline)}/request (from ${fmtMoney(current)}).`,
-          `Trade-off: Summary may omit tertiary sections. Core content preserved.`,
-          '',
-          `Policy triggered: DOC-COST-001 (Max $0.08 per summarization request)`,
-          `Action type: RECOMMENDATION — requires product team review.`,
-          `Audit entry: #AG-001 · team-docs@company.com notified.`,
+    if (s==='premium-overrouting') {
+      const cheap   = calcCost('claude-haiku',225,90);
+      const prem    = calcCost('claude-opus',225,90);
+      const daily   = (prem-cheap)*5760*.70;
+      return {
+        id:'AE-routing-'+Date.now(), type:'anomaly', ts:new Date(),
+        title:'PREMIUM MODEL OVER-ROUTING', workflow:cfg.name,
+        alertTitle:'Premium over-routing — Support Copilot',
+        alertMsg:`Claude Opus used for low-complexity (< 0.20) FAQ traffic.`,
+        lines:[
+          `Claude Opus used for requests with complexity score < 0.20.`,
+          `Last ${cfg.scenarioTrigger} requests: avg complexity 0.14 (FAQ/greeting classification).`,
+          `Cost per request: ${fmtUSD(prem)} — ${Math.round(prem/cheap)}× more expensive than Claude Haiku.`,
+          `Policy violated: ROUTE-COST-002 (Model must match intent complexity).`,
         ],
-        comparison: {
-          before:     { val: fmtMoney(current),  sub: `${fmtTok(avgIn)} input tokens` },
-          after:      { val: fmtMoney(baseline), sub: '1,500 input tokens' },
-          savings:    fmtMoney(dailyWaste),
-          savingsLbl: 'Daily savings',
+        suggestedAction:{
+          name:'Model Routing Optimization',
+          desc:'Route requests with complexity < 0.40 to Claude Haiku. Retain Opus for complex queries.',
+          saving:`${fmtUSD(prem-cheap)}/request on low-complexity traffic`,
+          tradeoff:'A/B testing shows < 2% difference in user satisfaction on FAQ intent.',
         },
-      });
-
-      S.interventions.unshift({
-        id:         'INT-001',
-        type:       'context-pruning',
-        actionType: 'recommendation',
-        workflow:   'Document Summarizer',
-        ts:         new Date(),
-        savings:    dailyWaste,
-        status:     'recommend',
-        critical:   false,
-      });
-      S.metrics.savings += dailyWaste * 0.5;
-
-      UI.refreshInterventions();
-      UI.refreshExec();
-      UI.refreshKPIs();
-    }, 1600);
-  },
-
-  // ── Premium Over-routing handler ─────────────
-  _onPremiumOverrouting(trigger) {
-    S.metrics.anomalies++;
-
-    const cheapCost   = calcCost('claude-haiku', 220, 90);
-    const premiumCost = calcCost('claude-opus',  220, 90);
-    const ratio       = Math.round(premiumCost / cheapCost);
-    const dailyReqs   = USE_CASES['support-copilot'].rateWeight * 60 * 8;
-    const dailySaving = (premiumCost - cheapCost) * dailyReqs * 0.70;
-
-    UI.addAgentEntry({
-      type:     'anomaly',
-      ts:       new Date(),
-      title:    'ANOMALY DETECTED — PREMIUM MODEL OVER-ROUTING',
-      workflow: 'Support Copilot',
-      reqId:    trigger.id,
-      lines: [
-        `Claude Opus is being used for requests with complexity score < 0.20.`,
-        `Last 8 requests: avg complexity 0.14 (FAQ/greeting classification).`,
-        `Cost per request: ${fmtMoney(premiumCost)} — ${ratio}× more expensive than Claude Haiku.`,
-        `Premium models are appropriate for complex reasoning, not intent detection.`,
-      ],
-    });
-
-    setTimeout(() => {
-      UI.addAgentEntry({
-        type:     'autonomous',
-        ts:       new Date(),
-        title:    'AUTONOMOUS ACTION — MODEL DOWNGRADE',
-        workflow: 'Support Copilot',
-        reqId:    trigger.id,
-        lines: [
-          `Action taken: Routing requests with complexity < 0.40 to Claude Haiku.`,
-          `Claude Opus retained for escalations and complex multi-turn queries.`,
-          '',
-          `Savings applied immediately: ${fmtMoney(premiumCost - cheapCost)}/request on low-complexity traffic.`,
-          `Estimated daily savings: ${fmtMoney(dailySaving)} at current volume.`,
-          `Quality impact: A/B comparison shows <2% difference in user satisfaction.`,
-          '',
-          `Policy triggered: ROUTE-COST-002 (Model must match intent complexity)`,
-          `Action type: AUTONOMOUS — applied immediately per standing policy.`,
-          `Audit entry: #AG-002 · routing-config updated.`,
+        comparison:{
+          before:{val:fmtUSD(prem), sub:'Claude Opus (premium)'},
+          after: {val:fmtUSD(cheap), sub:'Claude Haiku (efficient)'},
+          label:'Estimated daily savings', saving:fmtUSD(daily),
+        },
+        projectedSavings:daily*.3,
+        appliedTitle:'ACTION APPLIED — MODEL ROUTING UPDATED',
+        appliedLines:[
+          `Routing policy updated: complexity < 0.40 → Claude Haiku.`,
+          `Claude Opus retained for complex queries and escalations.`,
+          `Per-request cost: ${fmtUSD(prem)} → ${fmtUSD(cheap)} on low-complexity traffic.`,
         ],
-        comparison: {
-          before:     { val: fmtMoney(premiumCost), sub: 'Claude Opus' },
-          after:      { val: fmtMoney(cheapCost),   sub: 'Claude Haiku' },
-          savings:    fmtMoney(dailySaving),
-          savingsLbl: 'Daily savings',
-        },
-      });
+      };
+    }
 
-      S.scenarios.premiumActive = false;
-      S.interventions.unshift({
-        id:         'INT-002',
-        type:       'model-downgrade',
-        actionType: 'autonomous',
-        workflow:   'Support Copilot',
-        ts:         new Date(),
-        savings:    dailySaving,
-        status:     'applied',
-        critical:   false,
-      });
-      S.metrics.savings += dailySaving;
-
-      UI.refreshInterventions();
-      UI.refreshExec();
-      UI.refreshKPIs();
-    }, 1300);
-  },
-
-  // ── Retry Storm handler ──────────────────────
-  onRetryStorm(retryReq, retryCount) {
-    if (retryCount < THRESHOLDS.retryBreaker || this.retryFired) return;
-    this.retryFired = true;
-    S.metrics.anomalies++;
-
-    const perReqCost  = retryReq.cost;
-    const wasted      = perReqCost * retryCount;
-    const prevented   = perReqCost * (20 - retryCount);
-
-    UI.addAgentEntry({
-      type:     'anomaly',
-      ts:       new Date(),
-      title:    'ANOMALY DETECTED — RETRY STORM',
-      workflow: 'Proposal Assistant',
-      reqId:    retryReq.id,
-      lines: [
-        `Retry count on request ${retryReq.id}: ${retryCount} retries in 45 seconds.`,
-        `Root cause: Tool call timeout on knowledge-base API (avg 12s, threshold 3s).`,
-        `Accumulated cost from retries: ${fmtMoney(wasted)} (${retryCount}× request cost of ${fmtMoney(perReqCost)}).`,
-        `Without intervention, this pattern multiplies spend with no output value.`,
-      ],
-    });
-
-    setTimeout(() => {
-      UI.addAgentEntry({
-        type:     'autonomous',
-        ts:       new Date(),
-        title:    'AUTONOMOUS ACTION — CIRCUIT BREAKER ENGAGED',
-        workflow: 'Proposal Assistant',
-        reqId:    retryReq.id,
-        lines: [
-          `Action taken: Workflow paused. Retry circuit breaker triggered.`,
-          `Fallback: Request queued for manual review. Owner alerted.`,
-          '',
-          `Spend prevented: ${fmtMoney(prevented)} (${20 - retryCount} future retries blocked).`,
-          `Budget protected at scale: ${fmtMoney(prevented * 3)}/day if pattern recurred.`,
-          '',
-          `Root cause: knowledge-base API latency spike — likely upstream degradation.`,
-          `Recommendation: Increase timeout threshold or implement cached fallback.`,
-          '',
-          `Policy triggered: RETRY-GUARD-001 (Max 3 retries per request)`,
-          `Action type: AUTONOMOUS — circuit breaker engaged per standing policy.`,
-          `Audit entry: #AG-003 · owner-proposals@company.com alerted.`,
-          `Workflow status: PAUSED — requires manual restart.`,
+    if (s==='retry-storm') {
+      const per = req.cost, wasted=per*req.retries, prevented=per*(20-req.retries);
+      return {
+        id:'AE-retry-'+Date.now(), type:'anomaly', ts:new Date(),
+        title:'RETRY STORM DETECTED', workflow:cfg.name,
+        alertTitle:'Retry storm — Proposal Assistant',
+        alertMsg:`${req.retries} retries in 45 seconds. Circuit breaker engaging.`,
+        lines:[
+          `Retry count on request ${req.id}: ${req.retries} retries in 45 seconds.`,
+          `Root cause: Tool call timeout on knowledge-base API (avg 12s, threshold 3s).`,
+          `Accumulated cost from retries: ${fmtUSD(wasted)} (${req.retries}× request cost).`,
+          `Policy violated: RETRY-GUARD-001 (Max 3 retries per request).`,
         ],
-        comparison: {
-          before:     { val: `${retryCount} retries`,                sub: fmtMoney(wasted) + ' wasted' },
-          after:      { val: `${THRESHOLDS.retryBreaker} max retries`, sub: 'Circuit breaker active' },
-          savings:    fmtMoney(prevented),
-          savingsLbl: 'Spend prevented',
+        suggestedAction:{
+          name:'Circuit Breaker',
+          desc:'Pause workflow. Queue request for manual review. Alert workflow owner.',
+          saving:`${fmtUSD(prevented)} in prevented retries`,
+          tradeoff:'Workflow paused until manually resumed. Owner notified.',
         },
-      });
-
-      S.scenarios.retryActive = false;
-      S.interventions.unshift({
-        id:         'INT-003',
-        type:       'circuit-breaker',
-        actionType: 'autonomous',
-        workflow:   'Proposal Assistant',
-        ts:         new Date(),
-        savings:    prevented * 3,
-        status:     'applied',
-        critical:   true,
-      });
-      S.metrics.savings += prevented;
-
-      UI.setScenarioStatus('PAUSED: Proposal Assistant circuit breaker engaged. Retries halted.', 'danger');
-      UI.refreshInterventions();
-      UI.refreshExec();
-      UI.refreshKPIs();
-    }, 1100);
+        comparison:{
+          before:{val:`${req.retries} retries`, sub:fmtUSD(wasted)+' wasted'},
+          after: {val:'3 max retries', sub:'Circuit breaker active'},
+          label:'Spend prevented', saving:fmtUSD(prevented),
+        },
+        projectedSavings:prevented,
+        appliedTitle:'CIRCUIT BREAKER ENGAGED',
+        appliedLines:[
+          `Workflow paused. Retry loop halted at ${req.retries} retries.`,
+          `${fmtUSD(prevented)} in future retries prevented.`,
+          `Root cause: knowledge-base API latency spike — likely upstream.`,
+          `Recommendation: Increase timeout threshold or add cached fallback.`,
+          `Workflow status: PAUSED — click "Resume" on the card when ready.`,
+        ],
+      };
+    }
+    return null;
   },
 };
 
 // ════════════════════════════════════════════════════════
-// SCENARIO GENERATORS
+// DRAWER
 // ════════════════════════════════════════════════════════
 
-function makeBloatReq() {
-  const inTok = rndI(3700, 6400);
-  const outTok = rndI(270, 460);
-  const model = 'claude-sonnet';
-  return {
-    id:         nextId(),
-    ts:         new Date(),
-    ucId:       'doc-summarizer',
-    model,
-    inTok,
-    outTok,
-    latency:    rndI(750, 2400),
-    retries:    0,
-    cache:      false,
-    complexity: rnd(0.3, 0.7),
-    cost:       calcCost(model, inTok, outTok),
-    status:     'flagged',
-    flagged:    true,
-  };
-}
-
-function makePremiumReq() {
-  const inTok = rndI(140, 310);
-  const outTok = rndI(55, 130);
-  const model = 'claude-opus';
-  return {
-    id:         nextId(),
-    ts:         new Date(),
-    ucId:       'support-copilot',
-    model,
-    inTok,
-    outTok,
-    latency:    rndI(180, 620),
-    retries:    0,
-    cache:      false,
-    complexity: rnd(0.08, 0.22),
-    cost:       calcCost(model, inTok, outTok),
-    status:     'flagged',
-    flagged:    true,
-  };
-}
-
-// ════════════════════════════════════════════════════════
-// SCENARIOS
-// ════════════════════════════════════════════════════════
-
-const Scenarios = {
-  triggerPromptBloat() {
-    if (S.scenarios.bloatActive) return;
-    Agent.bloatFired  = false;
-    Agent.bloatStreak = 0;
-    S.scenarios.bloatActive = true;
-
-    UI.setScenarioStatus('Scenario active: Prompt Bloat — watching Document Summarizer…', 'warn');
-    UI.addAgentEntry({
-      type: 'info', ts: new Date(),
-      title: 'SCENARIO STARTED — PROMPT BLOAT',
-      lines: [
-        'Document Summarizer is now sending full document bodies without chunking.',
-        'Monitoring for cost threshold breach…',
-      ],
-    });
-
-    setTimeout(() => {
-      if (S.scenarios.bloatActive) {
-        S.scenarios.bloatActive = false;
-        UI.setScenarioStatus('Prompt Bloat scenario complete', 'success');
-      }
-    }, 30000);
+const Drawer = {
+  open(reqId) {
+    const req=S.requests.find(r=>r.id===reqId);
+    if (!req) return;
+    q('drawerTitle').textContent='Request Inspection';
+    q('drawerBody').innerHTML = this._reqHTML(req);
+    q('drawer').classList.add('open');
+    q('drawerScrim').classList.add('show');
   },
 
-  triggerPremiumOverrouting() {
-    if (S.scenarios.premiumActive) return;
-    Agent.premiumFired  = false;
-    Agent.premiumStreak = 0;
-    S.scenarios.premiumActive = true;
-
-    UI.setScenarioStatus('Scenario active: Premium Over-routing — Support Copilot switched to Claude Opus…', 'warn');
-    UI.addAgentEntry({
-      type: 'info', ts: new Date(),
-      title: 'SCENARIO STARTED — PREMIUM OVER-ROUTING',
-      lines: [
-        'Support Copilot now routing all traffic to Claude Opus.',
-        'Monitoring for cost/complexity mismatch…',
-      ],
-    });
+  openApproval(apId) {
+    const ap=S.approvals.get(apId);
+    if (!ap) return;
+    q('drawerTitle').textContent='Agent Recommendation';
+    q('drawerBody').innerHTML = this._apHTML(ap);
+    q('drawer').classList.add('open');
+    q('drawerScrim').classList.add('show');
   },
 
-  triggerRetryStorm() {
-    if (S.scenarios.retryActive) return;
-    Agent.retryFired     = false;
-    S.scenarios.retryActive = true;
-
-    UI.setScenarioStatus('Scenario active: Retry Storm — Proposal Assistant experiencing tool failures…', 'danger');
-    UI.addAgentEntry({
-      type: 'info', ts: new Date(),
-      title: 'SCENARIO STARTED — RETRY STORM',
-      lines: [
-        'Proposal Assistant knowledge-base API timeout triggered.',
-        'Monitoring retry accumulation…',
-      ],
-    });
-
-    // Fire base request then retry sequence
-    const base = makeRequest('proposal-assistant', { status: 'retrying', flagged: true });
-    processRequest(base);
-
-    const delays = [2200, 4000, 5800, 7600, 9400, 11200, 13000, 14800];
-    delays.forEach((delay, idx) => {
-      setTimeout(() => {
-        if (!S.scenarios.retryActive) return;
-        const count = idx + 1;
-        const req = {
-          ...base,
-          id:      nextId(),
-          ts:      new Date(),
-          retries: count,
-          cost:    base.cost * (1 + count * 0.08),
-          status:  count >= THRESHOLDS.retryBreaker ? 'circuit' : 'retrying',
-          flagged: true,
-        };
-
-        S.requests.unshift(req);
-        S.metrics.totalSpend              += req.cost;
-        S.metrics.totalReqs++;
-        S.metrics.spendByUC['proposal-assistant'] += req.cost;
-        S.metrics.reqsByUC['proposal-assistant']  = (S.metrics.reqsByUC['proposal-assistant'] || 0) + 1;
-
-        UI.addReqRow(req);
-        UI.refreshKPIs();
-
-        setTimeout(() => Agent.onRetryStorm(req, count), 600);
-      }, delay);
-    });
+  close() {
+    q('drawer').classList.remove('open');
+    q('drawerScrim').classList.remove('show');
   },
 
-  reset() {
-    stopSim();
+  _reqHTML(req) {
+    const cfg=WF_CFG[req.wfId], m=MODELS[req.model];
+    const policyMax={'doc-summarizer':0.08,'support-copilot':0.05,'proposal-assistant':0.20};
+    const max=policyMax[req.wfId]||0.12;
+    const over=req.cost>max?req.cost-max:0;
 
-    // Reset state
-    S.requests      = [];
-    S.interventions = [];
-    S.metrics = {
-      totalSpend:   0,
-      totalReqs:    0,
-      cacheHits:    0,
-      anomalies:    0,
-      savings:      0,
-      spendByUC:    {},
-      spendByModel: {},
-      reqsByUC:     {},
-    };
-    Object.keys(USE_CASES).forEach(id => {
-      S.metrics.spendByUC[id]  = 0;
-      S.metrics.reqsByUC[id]   = 0;
-    });
-    S.scenarios     = { bloatActive: false, premiumActive: false, retryActive: false };
-    S.requestSeq    = 1;
-    S.lastMinReqs   = [];
+    // Find pending approval for this workflow
+    const ap=[...S.approvals.values()].find(a=>a.wfId===req.wfId&&a.status==='pending');
+    const actionHTML = ap ? `
+      <div class="drawer-section">
+        <h3>Suggested Action</h3>
+        <div class="drawer-action-name">${ap.entry.suggestedAction.name}</div>
+        <div class="drawer-action-desc">${ap.entry.suggestedAction.desc}</div>
+        <div class="drawer-action-saving">💰 ${ap.entry.suggestedAction.saving}</div>
+        <div class="drawer-action-trade">⚖ Trade-off: ${ap.entry.suggestedAction.tradeoff}</div>
+        <div class="drawer-action-btns">
+          <button class="btn-approve" onclick="Agent.approve('${ap.id}')">✓ Approve Optimization</button>
+          <button class="btn-reject"  onclick="Agent.reject('${ap.id}')">✕ Reject</button>
+        </div>
+      </div>` : '';
 
-    // Reset agent counters
-    Agent.bloatStreak  = 0;
-    Agent.premiumStreak = 0;
-    Agent.bloatFired   = false;
-    Agent.premiumFired = false;
-    Agent.retryFired   = false;
+    const diagHTML = req.anomaly ? `
+      <div class="drawer-section">
+        <h3>Agent Diagnosis</h3>
+        <div class="drawer-diagnosis">${this._diag(req)}</div>
+      </div>` : '';
 
-    UI.reset();
-    setTimeout(() => { S.simTimer = true; startSim(); }, 400);
+    return `
+      <div class="drawer-section">
+        <div class="drawer-req-id">${req.id}</div>
+        <div class="drawer-req-meta">
+          <span style="color:${cfg.color}">${cfg.icon} ${cfg.name}</span>
+          <span>${fmtTime(req.ts)}</span>
+        </div>
+        <div class="drawer-req-tags">
+          <span class="model-pill ${m.tier}">${m.label}</span>
+          ${req.cache   ? '<span class="tag-cache">Cached</span>'   : ''}
+          ${req.retries ? `<span class="tag-retry">Retry ×${req.retries}</span>` : ''}
+          ${req.flagged ? '<span class="tag-flagged">⚠ Flagged</span>' : ''}
+        </div>
+      </div>
+      <div class="drawer-section">
+        <h3>Token Breakdown</h3>
+        <div class="drawer-metric"><span class="key">Input tokens</span><span class="${req.inTok>2000?'val-hi':'val-mono'}">${fmtTok(req.inTok)}</span></div>
+        <div class="drawer-metric"><span class="key">Output tokens</span><span class="val-mono">${fmtTok(req.outTok)}</span></div>
+        <div class="drawer-metric"><span class="key">Total tokens</span><span class="val-mono">${fmtTok(req.inTok+req.outTok)}</span></div>
+        ${req.retries?`<div class="drawer-metric"><span class="key">Retries</span><span class="val-hi">×${req.retries}</span></div>`:''}
+      </div>
+      <div class="drawer-section">
+        <h3>Cost Analysis</h3>
+        <div class="drawer-metric"><span class="key">This request</span><span class="${req.cost>max?'val-hi':'val-mono'}">${fmtUSD(req.cost)}</span></div>
+        <div class="drawer-metric"><span class="key">Policy ceiling</span><span class="val-mono">${fmtUSD(max)}</span></div>
+        ${over>0?`<div class="drawer-metric"><span class="key">Overage</span><span class="val-hi">+${fmtUSD(over)} (+${Math.round(over/max*100)}%)</span></div>`:''}
+        <div class="drawer-metric"><span class="key">Model tier</span><span class="tier-${m.tier}">${m.tier}</span></div>
+      </div>
+      ${diagHTML}${actionHTML}`;
+  },
+
+  _apHTML(ap) {
+    const e=ap.entry;
+    return `
+      <div class="drawer-section">
+        <div class="drawer-req-id" style="font-size:14px">${e.title}</div>
+        <div class="drawer-req-meta"><span>${e.workflow}</span><span>${fmtTime(e.ts)}</span></div>
+      </div>
+      <div class="drawer-section">
+        <h3>Detection</h3>
+        ${e.lines.map(l=>`<div class="drawer-diag-line">${l}</div>`).join('')}
+      </div>
+      <div class="drawer-section">
+        <h3>Proposed Action</h3>
+        <div class="drawer-action-name">${e.suggestedAction.name}</div>
+        <div class="drawer-action-desc">${e.suggestedAction.desc}</div>
+        <div class="drawer-action-saving">💰 ${e.suggestedAction.saving}</div>
+        <div class="drawer-action-trade">⚖ Trade-off: ${e.suggestedAction.tradeoff}</div>
+        <div class="drawer-action-btns">
+          <button class="btn-approve" onclick="Agent.approve('${ap.id}')">✓ Approve</button>
+          <button class="btn-reject"  onclick="Agent.reject('${ap.id}')">✕ Reject</button>
+        </div>
+      </div>`;
+  },
+
+  _diag(req) {
+    if (req.anomaly==='prompt-bloat')
+      return `Full document body (${fmtTok(req.inTok)} tokens) sent as context. Policy DOC-COST-001 requires max 1,500 input tokens. Consider chunking documents before sending.`;
+    if (req.anomaly==='premium-overrouting')
+      return `Request complexity score ${req.complexity.toFixed(2)} is below the 0.35 threshold. Claude Opus is ${Math.round(calcCost('claude-opus',225,90)/calcCost('claude-haiku',225,90))}× more expensive than Claude Haiku for the same intent classification task.`;
+    if (req.retries)
+      return `Request entered retry loop after tool call timeout. ${req.retries} retries attempted. Policy RETRY-GUARD-001 limits retries to 3.`;
+    return 'Anomalous cost pattern detected. See agent console for full diagnosis.';
   },
 };
 
@@ -1261,356 +1392,305 @@ const Scenarios = {
 // ════════════════════════════════════════════════════════
 
 const UI = {
-  // ── KPI refresh ───────────────────────────────
   refreshKPIs() {
-    const m = S.metrics;
-    const reqPerMin = S.lastMinReqs.length;
-    const cacheRate = m.totalReqs > 0 ? Math.round(m.cacheHits / m.totalReqs * 100) : 0;
-    const savPct    = m.totalSpend > 0
-      ? Math.round(m.savings / (m.totalSpend + m.savings) * 100)
-      : 0;
+    const m=S.metrics, rpm=S.minReqs.length;
+    const cacheRate = m.reqs>0 ? Math.round(m.cache/m.reqs*100) : 0;
+    const savPct    = m.spend>0 ? Math.round(m.savings/(m.spend+m.savings)*100) : 0;
+    const alerts    = S.alerts.filter(a=>!a.cleared&&a.type==='crit').length;
 
-    q('kpiTotalSpend').textContent = fmtMoney(m.totalSpend);
-    q('kpiRequests').textContent   = m.totalReqs.toLocaleString();
-    q('kpiAnomalies').textContent  = m.anomalies;
-    q('kpiSavings').textContent    = fmtMoney(m.savings);
-    q('kpiCacheRate').textContent  = cacheRate + '%';
-    q('kpiCacheHits').textContent  = m.cacheHits + ' hits';
-    q('kpiReqRate').textContent    = reqPerMin + ' req/min';
-    q('kpiSavingsPct').textContent = savPct + '% of spend';
-    q('reqCount').textContent      = m.totalReqs + ' total';
-
-    const card = q('kpiAnomalyCard');
-    card.classList.toggle('kpi-alert', m.anomalies > 0);
+    q('kpiSpend').textContent   = fmtUSD(m.spend);
+    q('kpiReqs').textContent    = m.reqs.toLocaleString();
+    q('kpiReqRate').textContent = rpm+' req/min';
+    q('kpiCacheRate').textContent = cacheRate+'% cache';
+    q('kpiAlerts').textContent  = alerts;
+    q('kpiSavings').textContent = fmtUSD(m.savings);
+    q('kpiSavingsPct').textContent = m.savings>0 ? savPct+'% of spend' : '—';
+    q('streamCount').textContent = m.reqs+' requests';
+    q('kpiAlertCard').classList.toggle('has-alert', alerts>0);
   },
 
-  // ── Request table row ─────────────────────────
+  setWFStatus(id, status) {
+    const card=q('card-'+id), dot=q('dot-'+id), badge=q('badge-'+id), btn=q('btn-'+id);
+    card.className='wf-card'+(status!=='idle'?' wf-'+status:'');
+    dot.className ='wf-dot '+status;
+    badge.className='wf-badge '+status;
+    const labels={idle:'IDLE',running:'RUNNING',anomaly:'ANOMALY DETECTED',paused:'PAUSED',optimized:'OPTIMIZED'};
+    const btns  ={idle:'▶ Run Workflow',running:'⏸ Stop',anomaly:'⏸ Stop',paused:'▶ Resume',optimized:'⏸ Stop'};
+    badge.textContent=labels[status]||'IDLE';
+    btn.textContent  =btns[status]||'▶ Run Workflow';
+  },
+
+  refreshWFCard(id) {
+    const wf=S.workflows[id], el=q('stats-'+id);
+    if (!el) return;
+    if (wf.reqs===0){ el.innerHTML='—'; return; }
+    const avg=wf.spend/wf.reqs;
+    el.innerHTML=`<span>${wf.reqs} requests</span><span>${fmtUSD(wf.spend)} total</span><span>avg ${fmtUSD(avg)}/req</span>`;
+  },
+
   addReqRow(req) {
-    const tbody = q('reqTableBody');
+    const tbody=q('reqBody');
+    const emp=tbody.querySelector('.empty-row'); if(emp) emp.remove();
 
-    // Clear idle placeholder
-    const idle = tbody.querySelector('.idle-row');
-    if (idle) idle.remove();
+    const cfg=WF_CFG[req.wfId], m=MODELS[req.model];
+    const cCls=req.cost>.10?'hi':req.cost>.04?'mid':'';
+    const rCls=req.status==='circuit'?'row-crit':req.flagged?'row-warn':req.status==='optimized'?'row-opt':'';
 
-    const uc      = USE_CASES[req.ucId];
-    const pricing = MODEL_PRICING[req.model];
-    const costCls = req.cost > 0.10 ? 'cost-hi' : req.cost > 0.04 ? 'cost-mid' : '';
-    const rowCls  = req.status === 'circuit' ? 'row-crit'
-                  : req.flagged              ? 'row-warn' : '';
+    const stMap={ok:{l:'OK',c:'ok'},flagged:{l:'Flagged',c:'flagged'},retrying:{l:`Retry ${req.retries}`,c:'retrying'},circuit:{l:'Circuit Break',c:'circuit'},optimized:{l:'Optimized',c:'optimized'}};
+    const st=stMap[req.status]||stMap.ok;
 
-    const statusLabel = {
-      ok:      'OK',
-      flagged: 'Flagged',
-      retrying:`Retry ${req.retries}`,
-      circuit: 'Circuit Break',
-      done:    'Intervened',
-    }[req.status] || req.status;
+    const inspBtn=(req.flagged||req.retries>0)?`<button class="inspect-btn" onclick="Drawer.open('${req.id}')">Inspect</button>`:'';
 
-    const tr = document.createElement('tr');
-    tr.className = `req-row new ${rowCls}`;
-    tr.innerHTML = `
+    const tr=document.createElement('tr');
+    tr.className=`req-row new ${rCls}`;
+    if(req.flagged||req.retries>0){ tr.style.cursor='pointer'; tr.onclick=()=>Drawer.open(req.id); }
+    tr.innerHTML=`
       <td class="time-col">${fmtTime(req.ts)}</td>
-      <td><span style="color:${uc.color}" class="uc-badge">${uc.icon} ${uc.label}</span></td>
-      <td><span class="model-pill ${pricing.tier}">${pricing.label}</span></td>
-      <td class="tokens-col">
+      <td><span class="uc-lbl" style="color:${cfg.color}">${cfg.icon} ${cfg.name}</span></td>
+      <td><span class="model-pill ${m.tier}">${m.label}</span></td>
+      <td class="tok-col">
         <span class="tok-in">↑${fmtTok(req.inTok)}</span>
         <span class="tok-out">↓${fmtTok(req.outTok)}</span>
-        ${req.cache   ? '<span class="tag-cache">cached</span>' : ''}
-        ${req.retries ? `<span class="tag-retry">×${req.retries}</span>` : ''}
+        ${req.cache  ?'<span class="tag-cache">cached</span>':''}
+        ${req.retries?`<span class="tag-retry">×${req.retries}</span>`:''}
       </td>
-      <td class="cost-col ${costCls}">${fmtMoney(req.cost)}</td>
-      <td><span class="status-pill ${req.status}">${statusLabel}</span></td>
-    `;
+      <td class="cost-col ${cCls}">${fmtUSD(req.cost)}</td>
+      <td><span class="status-pill ${st.c}">${st.l}</span></td>
+      <td>${inspBtn}</td>`;
 
     tbody.insertBefore(tr, tbody.firstChild);
-    setTimeout(() => tr.classList.remove('new'), 500);
-
-    while (tbody.children.length > THRESHOLDS.maxTableRows) {
-      tbody.removeChild(tbody.lastChild);
-    }
+    setTimeout(()=>tr.classList.remove('new'), 400);
+    while(tbody.children.length>26) tbody.removeChild(tbody.lastChild);
   },
 
-  // ── Agent console entry ───────────────────────
-  addAgentEntry(entry) {
-    const log = q('agentLog');
-
-    // Remove idle placeholder
-    const idle = log.querySelector('.agent-idle');
-    if (idle) idle.remove();
-
-    const typeMap = {
-      anomaly:    { icon: '🔍', label: 'DETECTED',   cls: 't-anomaly'   },
-      recommend:  { icon: '💡', label: 'RECOMMEND',  cls: 't-recommend' },
-      autonomous: { icon: '⚡', label: 'ACTION',     cls: 't-autonomous'},
-      info:       { icon: 'ℹ',  label: 'INFO',       cls: 't-info'      },
-    };
-    const tm = typeMap[entry.type] || typeMap.info;
-
-    const linesHtml = entry.lines.map(l =>
-      l === '' ? '<div class="ae-line ae-spacer"></div>'
-               : `<div class="ae-line">${l}</div>`
-    ).join('');
-
-    let cmpHtml = '';
-    if (entry.comparison) {
-      const c = entry.comparison;
-      cmpHtml = `
-        <div class="comparison">
-          <div class="cmp-col">
-            <div class="cmp-lbl">BEFORE</div>
-            <div class="cmp-val hi">${c.before.val}</div>
-            <div class="cmp-sub">${c.before.sub}</div>
-          </div>
-          <div class="cmp-arrow">→</div>
-          <div class="cmp-col">
-            <div class="cmp-lbl">AFTER</div>
-            <div class="cmp-val lo">${c.after.val}</div>
-            <div class="cmp-sub">${c.after.sub}</div>
-          </div>
-          <div class="cmp-savings">
-            <div class="cmp-savings-lbl">${c.savingsLbl}</div>
-            <div class="cmp-savings-val">${c.savings}</div>
-          </div>
+  refreshAlerts() {
+    const active=S.alerts.filter(a=>!a.cleared);
+    const el=q('alertsList');
+    if(!active.length){ el.innerHTML='<div class="empty-cell" style="padding:18px">No alerts</div>'; return; }
+    el.innerHTML=active.map(a=>`
+      <div class="alert-card ${a.type==='crit'?'crit':''}">
+        <div class="alert-ico">${a.type==='crit'?'⚠':'ℹ'}</div>
+        <div class="alert-body">
+          <div class="alert-title">${a.title}</div>
+          <div class="alert-msg">${a.msg}</div>
+          <div class="alert-time">${fmtTime(a.ts)}</div>
         </div>
-      `;
+        ${a.type==='crit'?`<div class="alert-view"><button class="inspect-btn" onclick="UI.switchTab('agent')">View →</button></div>`:''}
+      </div>`).join('');
+  },
+
+  addAgentEntry(entry) {
+    const feed=q('agentFeed');
+    const idle=feed.querySelector('.agent-idle'); if(idle) idle.remove();
+
+    const tMap={
+      anomaly:          {ico:'🔍',pLbl:'DETECTED',   pCls:'p-anomaly',   eCls:'ae-anomaly'},
+      'approval-required':{ico:'💡',pLbl:'NEEDS APPROVAL',pCls:'p-approval',eCls:'ae-approval'},
+      autonomous:       {ico:'⚡',pLbl:'AUTO-APPLIED',pCls:'p-autonomous',eCls:'ae-autonomous'},
+      applied:          {ico:'✅',pLbl:'APPLIED',     pCls:'p-applied',   eCls:'ae-applied'},
+      rejected:         {ico:'✕', pLbl:'REJECTED',   pCls:'p-rejected',  eCls:'ae-rejected'},
+      info:             {ico:'ℹ', pLbl:'INFO',        pCls:'p-info',      eCls:'ae-info'},
+    };
+    const t=tMap[entry.type]||tMap.info;
+
+    const linesHTML=(entry.lines||[]).map(l=>
+      l===''?'<div class="ae-spacer"></div>':`<div class="ae-line">${l}</div>`).join('');
+
+    let cmpHTML='';
+    if(entry.comparison){
+      const c=entry.comparison;
+      cmpHTML=`<div class="comparison">
+        <div class="cmp-col"><div class="cmp-lbl">BEFORE</div><div class="cmp-val hi">${c.before.val}</div><div class="cmp-sub">${c.before.sub}</div></div>
+        <div class="cmp-arrow">→</div>
+        <div class="cmp-col"><div class="cmp-lbl">AFTER</div><div class="cmp-val lo">${c.after.val}</div><div class="cmp-sub">${c.after.sub}</div></div>
+        <div class="cmp-savings"><div class="cmp-sav-lbl">${c.label}</div><div class="cmp-sav-val">${c.saving}</div></div>
+      </div>`;
     }
 
-    const div = document.createElement('div');
-    div.className = `agent-entry new ${tm.cls}`;
-    div.innerHTML = `
+    let actHTML='';
+    if(entry.actionType==='approval-required' && entry.approved==null){
+      actHTML=`<div class="ae-actions">
+        <button class="btn-approve" onclick="Agent.approve('${entry.approvalId}')">✓ Approve Optimization</button>
+        <button class="btn-reject"  onclick="Agent.reject('${entry.approvalId}')">✕ Reject</button>
+        <button class="btn-details" onclick="Drawer.openApproval('${entry.approvalId}')">Full details →</button>
+      </div>`;
+    }
+
+    const div=document.createElement('div');
+    div.className=`agent-entry new ${t.eCls}`;
+    div.setAttribute('data-eid', entry.id);
+    div.innerHTML=`
       <div class="ae-head">
-        <span class="ae-icon">${tm.icon}</span>
-        <div class="ae-badges">
-          <span class="ae-type-pill ${tm.cls}">${tm.label}</span>
+        <span class="ae-ico">${t.ico}</span>
+        <div class="ae-titles">
+          <span class="ae-pill ${t.pCls}">${t.pLbl}</span>
           <span class="ae-title">${entry.title}</span>
         </div>
         <span class="ae-time">${fmtTime(entry.ts)}</span>
       </div>
-      ${entry.workflow ? `<div class="ae-workflow">Workflow: ${entry.workflow}</div>` : ''}
-      <div class="ae-details">${linesHtml}</div>
-      ${cmpHtml}
-    `;
+      ${entry.workflow?`<div class="ae-wf">Workflow: ${entry.workflow}</div>`:''}
+      <div class="ae-body">${linesHTML}</div>
+      ${cmpHTML}${actHTML}`;
 
-    log.insertBefore(div, log.firstChild);
-    setTimeout(() => div.classList.remove('new'), 500);
-
-    while (log.children.length > THRESHOLDS.maxAgentEntries) {
-      log.removeChild(log.lastChild);
-    }
-
-    // Update agent chip
-    const chip = q('agentChip');
-    if (entry.type === 'anomaly') {
-      chip.className = 'agent-status-chip alert';
-      chip.innerHTML = '<span class="chip-dot"></span>Anomaly Detected';
-    } else if (entry.type === 'autonomous') {
-      chip.className = 'agent-status-chip success';
-      chip.innerHTML = '<span class="chip-dot"></span>Action Applied';
-    } else {
-      chip.className = 'agent-status-chip';
-      chip.innerHTML = '<span class="chip-dot"></span>Monitoring';
-    }
-    setTimeout(() => {
-      chip.className = 'agent-status-chip';
-      chip.innerHTML = '<span class="chip-dot"></span>Monitoring';
-    }, 6000);
+    feed.insertBefore(div, feed.firstChild);
+    setTimeout(()=>div.classList.remove('new'), 500);
+    while(feed.children.length>30) feed.removeChild(feed.lastChild);
   },
 
-  // ── Spend / model charts ──────────────────────
-  refreshCharts() {
-    const m = S.metrics;
-    if (m.totalSpend === 0) return;
-
-    // Spend by use case
-    const ucHtml = Object.entries(USE_CASES).map(([id, uc]) => {
-      const spend = m.spendByUC[id] || 0;
-      const pct   = m.totalSpend > 0 ? spend / m.totalSpend * 100 : 0;
-      const reqs  = m.reqsByUC[id] || 0;
-      const avg   = reqs > 0 ? spend / reqs : 0;
-      return `
-        <div class="bar-row">
-          <div class="bar-lbl">
-            <span>${uc.icon} ${uc.label}</span>
-            <span class="bar-amt">${fmtMoney(spend)}</span>
-          </div>
-          <div class="bar-track"><div class="bar-fill" style="width:${pct.toFixed(1)}%;background:${uc.color}"></div></div>
-          <div class="bar-meta">${reqs} req · avg ${fmtMoney(avg)}</div>
-        </div>`;
-    }).join('');
-    q('spendBars').innerHTML = ucHtml;
-
-    // Model distribution
-    const tiers = { premium: '#ef4444', standard: '#f59e0b', efficient: '#10b981' };
-    const sorted = Object.entries(m.spendByModel).sort((a, b) => b[1] - a[1]);
-    const modelHtml = sorted.map(([mid, spend]) => {
-      const p   = MODEL_PRICING[mid];
-      const pct = m.totalSpend > 0 ? spend / m.totalSpend * 100 : 0;
-      const col = tiers[p.tier];
-      return `
-        <div class="bar-row">
-          <div class="bar-lbl">
-            <span><span class="model-dot" style="background:${col}"></span>${p.label}</span>
-            <span class="bar-amt">${fmtMoney(spend)}</span>
-          </div>
-          <div class="bar-track"><div class="bar-fill" style="width:${pct.toFixed(1)}%;background:${col}"></div></div>
-          <div class="bar-meta"><span class="tier-chip ${p.tier}">${p.tier}</span> · ${pct.toFixed(1)}% of spend</div>
-        </div>`;
-    }).join('');
-    q('modelBars').innerHTML = modelHtml || '<div class="empty-state">No data</div>';
+  updateEntry(entry) {
+    const el=document.querySelector(`[data-eid="${entry.id}"]`);
+    if(!el) return;
+    const pill=el.querySelector('.ae-pill');
+    const acts=el.querySelector('.ae-actions');
+    if(entry.approved===true){
+      if(pill){ pill.className='ae-pill p-applied'; pill.textContent='APPROVED'; }
+      if(acts) acts.innerHTML='<div class="ae-approved-badge">✓ Optimization approved</div>';
+    } else if(entry.approved===false){
+      if(pill){ pill.className='ae-pill p-rejected'; pill.textContent='REJECTED'; }
+      if(acts) acts.innerHTML='<div class="ae-rejected-badge">✕ Rejected — no changes applied</div>';
+      el.className=el.className.replace('ae-approval','ae-rejected');
+    }
   },
 
-  // ── Intervention list ─────────────────────────
-  refreshInterventions() {
-    if (S.interventions.length === 0) {
-      q('interventionList').innerHTML = '<div class="empty-state">No interventions yet</div>';
-      return;
-    }
+  setPolicyViolated(policyId, v) {
+    const el=q('pdot-'+policyId);
+    if(el) el.className='policy-dot '+(v?'violated':'ok');
+  },
 
-    const icons = {
-      'context-pruning': '✂️',
-      'model-downgrade':  '⬇️',
-      'circuit-breaker':  '🛑',
-      'cache-reuse':      '♻️',
-      'output-cap':       '📏',
+  refreshExec() {
+    const m=S.metrics;
+    if(!S.entries.some(e=>e.type==='applied')) return;
+
+    const savPct  = m.spend>0?Math.round(m.savings/(m.spend+m.savings)*100):0;
+    const cacheRt = m.reqs>0?Math.round(m.cache/m.reqs*100):0;
+    const avgCost = m.reqs>0?m.spend/m.reqs:0;
+
+    const narratives={
+      'prompt-bloat':       'Document Assistant was sending full document bodies (4,000–6,000 tokens) instead of pre-chunked sections, violating policy DOC-COST-001. Context pruning intervention reduced input tokens by 74% while preserving core summary quality.',
+      'premium-overrouting':'Support Copilot was routing all traffic — including simple FAQ intents (complexity < 0.20) — to Claude Opus. Model routing optimization redirected low-complexity traffic to Claude Haiku, a model suited to intent classification.',
+      'retry-storm':        'Proposal Assistant entered a retry loop after a knowledge-base API timeout. 8 retries in 45 seconds multiplied spend with no output value. Circuit breaker halted the loop and preserved budget pending root-cause resolution.',
     };
 
-    const html = S.interventions.map(inv => {
-      const cls = inv.actionType === 'autonomous' ? 'inv-critical' : 'inv-recommend';
-      const stCls = inv.status === 'applied' ? 'applied' : 'recommend';
-      const stLbl = inv.status === 'applied' ? 'Applied' : 'Recommended';
-      return `
-        <div class="inv-card ${cls}">
-          <div class="inv-head">
-            <span class="inv-icon">${icons[inv.type] || '⚡'}</span>
-            <span class="inv-label">${inv.type.replace(/-/g,' ').toUpperCase()}</span>
-            <span class="inv-status ${stCls}">${stLbl}</span>
-          </div>
-          <div class="inv-wf">${inv.workflow}</div>
-          <div class="inv-saving">${fmtMoney(inv.savings)} ${inv.actionType === 'autonomous' ? 'saved/prevented' : 'projected'}</div>
-          <div class="inv-time">${fmtTime(inv.ts)}</div>
-        </div>`;
-    }).join('');
-    q('interventionList').innerHTML = html;
-  },
+    const wfCards = Object.entries(WF_CFG).map(([id,cfg])=>{
+      const wf=S.workflows[id];
+      const applied=S.entries.find(e=>e.type==='applied'&&e.id.includes(id.split('-')[0]));
+      if(!applied) return '';
 
-  // ── Executive summary ─────────────────────────
-  refreshExec() {
-    const m = S.metrics;
-    if (m.totalReqs < 8) return;
+      const bAvg=wf.baseline?wf.baseline.avgCost:0;
+      const aReqs=wf.reqs-(wf.reqsAtOpt||wf.reqs);
+      const aSpend=wf.spend-(wf.spendAtOpt||wf.spend);
+      const aAvg=aReqs>0?aSpend/aReqs:0;
+      const pct=bAvg>0&&aAvg>0?Math.round((1-aAvg/bAvg)*100):0;
 
-    const topUC = Object.entries(m.spendByUC).sort((a, b) => b[1] - a[1])[0];
-    const topUCName = topUC ? USE_CASES[topUC[0]].label : '—';
-    const topUCPct  = topUC && m.totalSpend > 0 ? Math.round(topUC[1] / m.totalSpend * 100) : 0;
+      const baHTML=bAvg>0?`
+        <div class="exec-ba">
+          <div class="exec-ba-col"><div class="exec-ba-lbl">BEFORE</div><div class="exec-ba-val hi">${fmtUSD(bAvg)}/req</div></div>
+          <div class="exec-ba-arrow">→</div>
+          <div class="exec-ba-col"><div class="exec-ba-lbl">AFTER</div><div class="exec-ba-val lo">${fmtUSD(aAvg||bAvg*.28)}/req</div></div>
+          <div class="exec-ba-saving"><div class="exec-ba-sav-lbl">Cost reduction</div><div class="exec-ba-sav-val">${pct||72}%</div></div>
+        </div>`:'';
 
-    const cacheRate = m.totalReqs > 0 ? Math.round(m.cacheHits / m.totalReqs * 100) : 0;
-    const savPct    = m.totalSpend > 0 ? Math.round(m.savings / (m.totalSpend + m.savings) * 100) : 0;
-    const avgCost   = m.totalReqs > 0 ? m.totalSpend / m.totalReqs : 0;
+      return `<div class="exec-wf-card">
+        <div class="exec-wf-title">${cfg.name}</div>
+        <div class="exec-wf-type">${cfg.scenario.replace(/-/g,' ').toUpperCase()} · ${applied.id.includes('applied')?'Optimization applied':''}</div>
+        ${baHTML}
+        <div class="exec-narrative">${narratives[cfg.scenario]||''}</div>
+      </div>`;
+    }).filter(Boolean).join('');
 
-    const auto   = S.interventions.filter(i => i.actionType === 'autonomous').length;
-    const recs   = S.interventions.filter(i => i.actionType === 'recommendation').length;
-    const total  = S.interventions.length;
-
-    let narrative = '';
-    if (total > 0) {
-      const parts = [];
-      if (auto  > 0) parts.push(`<strong>${auto} applied autonomously</strong>`);
-      if (recs  > 0) parts.push(`<strong>${recs} recommended for team review</strong>`);
-      narrative += `<p>The TokenOps Agent completed <strong>${total} intervention${total > 1 ? 's' : ''}</strong> this session: ${parts.join(' and ')}.</p>`;
-    }
-
-    narrative += `<p><strong>${topUCName}</strong> is the highest-cost workflow, representing ${topUCPct}% of total AI spend.</p>`;
-
-    if (m.anomalies > 0) {
-      narrative += `<p>${m.anomalies} policy violation${m.anomalies > 1 ? 's' : ''} detected and addressed. Each intervention prevents compounding waste before it reaches the billing cycle.</p>`;
-    }
-
-    narrative += `<p class="exec-tagline">Every token this session became observable, interpretable, and governable.</p>`;
-
-    q('execContent').innerHTML = `
-      <div class="exec-stats">
-        <div class="exec-stat">
-          <div class="exec-stat-val">${fmtMoney(m.totalSpend)}</div>
-          <div class="exec-stat-lbl">Total AI spend</div>
-        </div>
-        <div class="exec-stat">
-          <div class="exec-stat-val">${fmtMoney(m.savings)}</div>
-          <div class="exec-stat-lbl">Savings captured (${savPct}%)</div>
-        </div>
-        <div class="exec-stat">
-          <div class="exec-stat-val">${fmtMoney(avgCost)}</div>
-          <div class="exec-stat-lbl">Avg cost per request</div>
-        </div>
-        <div class="exec-stat">
-          <div class="exec-stat-val">${cacheRate}%</div>
-          <div class="exec-stat-lbl">Cache hit rate</div>
-        </div>
+    q('execContent').innerHTML=`
+      <div class="exec-stats-row">
+        <div class="exec-stat"><div class="exec-stat-val">${fmtUSD(m.spend)}</div><div class="exec-stat-lbl">Total AI spend</div></div>
+        <div class="exec-stat green"><div class="exec-stat-val">${fmtUSD(m.savings)}</div><div class="exec-stat-lbl">Savings captured (${savPct}%)</div></div>
+        <div class="exec-stat"><div class="exec-stat-val">${fmtUSD(avgCost)}</div><div class="exec-stat-lbl">Avg cost per request</div></div>
+        <div class="exec-stat"><div class="exec-stat-val">${cacheRt}%</div><div class="exec-stat-lbl">Cache hit rate</div></div>
       </div>
-      <div class="exec-narrative">${narrative}</div>
-    `;
+      ${wfCards}
+      <div class="exec-tagline">Every token this session became observable, interpretable, and governable.</div>`;
   },
 
-  // ── Scenario status bar ───────────────────────
-  setScenarioStatus(msg, type) {
-    const el = q('scenarioStatusBar');
-    el.textContent = msg;
-    el.className = 'scenario-status-bar ' + type;
+  switchTab(id) {
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active',p.id==='tab-'+id));
   },
 
-  // ── Reset ─────────────────────────────────────
-  reset() {
-    q('reqTableBody').innerHTML   = '';
-    q('agentLog').innerHTML       = `<div class="agent-idle"><div class="agent-idle-icon">🔍</div><div>Agent monitoring traffic. Trigger a scenario to see it in action.</div></div>`;
-    q('spendBars').innerHTML      = '<div class="empty-state">Waiting for traffic…</div>';
-    q('modelBars').innerHTML      = '<div class="empty-state">Waiting for traffic…</div>';
-    q('interventionList').innerHTML = '<div class="empty-state">No interventions yet</div>';
-    q('execContent').innerHTML    = '<div class="empty-state">Summary will appear once traffic is established.</div>';
-    q('kpiTotalSpend').textContent = '$0.00';
-    q('kpiRequests').textContent   = '0';
-    q('kpiAnomalies').textContent  = '0';
-    q('kpiSavings').textContent    = '$0.00';
-    q('kpiCacheRate').textContent  = '0%';
-    q('kpiCacheHits').textContent  = '0 hits';
-    q('kpiReqRate').textContent    = '0 req/min';
-    q('kpiSavingsPct').textContent = '0% of spend';
-    q('reqCount').textContent      = '0 total';
-    q('kpiAnomalyCard').classList.remove('kpi-alert');
-    q('scenarioStatusBar').className = 'scenario-status-bar';
-    q('agentChip').className    = 'agent-status-chip';
-    q('agentChip').innerHTML    = '<span class="chip-dot"></span>Monitoring';
+  showBadge(n) { const b=q('agentBadge'); b.textContent=n; b.classList.remove('hidden'); },
+  hideBadge()  { q('agentBadge').classList.add('hidden'); },
+  setLive(on)  {
+    const c=q('liveChip'), l=q('liveLabel');
+    c.classList.toggle('active',on);
+    l.textContent=on?'Live':'Ready';
   },
 };
 
 // ════════════════════════════════════════════════════════
-// THEME
+// SETTINGS & CONTROLS
 // ════════════════════════════════════════════════════════
 
+function toggleAutoApply() {
+  S.autoApply=!S.autoApply;
+  q('autoApplyToggle').classList.toggle('on',S.autoApply);
+  const cb=q('autoApplyCb'); if(cb) cb.checked=S.autoApply;
+}
+
 function toggleTheme() {
-  const html  = document.documentElement;
-  const next  = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-  html.setAttribute('data-theme', next);
-  localStorage.setItem('tokenops-theme', next);
-  q('themeToggle').textContent = next === 'dark' ? '☀ Light' : '⏾ Dark';
+  const h=document.documentElement;
+  const next=h.getAttribute('data-theme')==='dark'?'light':'dark';
+  h.setAttribute('data-theme',next);
+  localStorage.setItem('tokenops-theme',next);
+  q('themeBtn').textContent=next==='dark'?'☀':'⏾';
 }
 
 // ════════════════════════════════════════════════════════
-// HELPERS
+// APP RESET
 // ════════════════════════════════════════════════════════
 
-function q(id) { return document.getElementById(id); }
+const App = {
+  reset() {
+    Object.values(S.workflows).forEach(wf=>clearTimeout(wf.timer));
+    S.workflows=mkAllWF();
+    S.requests=[]; S.alerts=[]; S.entries=[]; S.approvals=new Map();
+    S.metrics={spend:0,reqs:0,cache:0,alerts:0,savings:0};
+    S.reqSeq=1; S.minReqs=[];
+
+    Object.keys(WF_CFG).forEach(id=>{
+      UI.setWFStatus(id,'idle');
+      UI.refreshWFCard(id);
+      UI.setPolicyViolated(WF_CFG[id].policy,false);
+    });
+
+    q('reqBody').innerHTML='<tr class="empty-row"><td colspan="7" class="empty-cell">Run a workflow to see live requests</td></tr>';
+    q('agentFeed').innerHTML='<div class="agent-idle"><div class="agent-idle-ico">🔍</div><div>Start a workflow to see the agent in action.</div></div>';
+    q('alertsList').innerHTML='<div class="empty-cell" style="padding:18px">No alerts</div>';
+    q('execContent').innerHTML='<div class="exec-empty"><div style="font-size:32px;margin-bottom:10px">📊</div><div>Run a workflow and approve an optimization to see the impact summary.</div></div>';
+
+    UI.refreshKPIs();
+    UI.hideBadge();
+    UI.setLive(false);
+    UI.switchTab('operations');
+    Drawer.close();
+  },
+};
 
 // ════════════════════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════════════════════
 
-document.addEventListener('DOMContentLoaded', () => {
-  const saved = localStorage.getItem('tokenops-theme') || 'dark';
-  document.documentElement.setAttribute('data-theme', saved);
-  q('themeToggle').textContent = saved === 'dark' ? '☀ Light' : '⏾ Dark';
+document.addEventListener('DOMContentLoaded', ()=>{
+  const saved=localStorage.getItem('tokenops-theme')||'dark';
+  document.documentElement.setAttribute('data-theme',saved);
+  const tb=q('themeBtn'); if(tb) tb.textContent=saved==='dark'?'☀':'⏾';
 
-  startSim();
-  setInterval(() => { UI.refreshExec(); UI.refreshKPIs(); }, 3000);
+  document.querySelectorAll('.tab-btn').forEach(b=>{
+    b.addEventListener('click',()=>UI.switchTab(b.dataset.tab));
+  });
+
+  setInterval(()=>{
+    S.minReqs=S.minReqs.filter(t=>Date.now()-t<60000);
+    UI.refreshKPIs();
+  }, 2000);
 });
 
-  </script>
+</script>
 </body>
 </html>

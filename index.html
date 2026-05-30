@@ -3,174 +3,225 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TokenOps Agent — AI Cost Intelligence</title>
+  <title>TokenOps Agent</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+<div class="app">
 
   <!-- HEADER -->
   <header class="app-header">
-    <div class="header-brand">
-      <div class="brand-icon">⬡</div>
+    <div class="hdr-brand">
+      <span class="brand-hex">⬡</span>
       <div>
         <div class="brand-name">TokenOps Agent</div>
         <div class="brand-sub">AI Cost Intelligence Platform</div>
       </div>
     </div>
-    <div class="header-controls">
-      <div class="live-indicator">
+
+    <nav class="tab-nav" id="tabNav">
+      <button class="tab-btn active" data-tab="operations">Operations</button>
+      <button class="tab-btn" data-tab="agent">
+        Agent Console
+        <span class="tab-badge hidden" id="agentBadge">0</span>
+      </button>
+      <button class="tab-btn" data-tab="executive">Executive Impact</button>
+    </nav>
+
+    <div class="hdr-right">
+      <label class="autoapply-label">
+        <span class="autoapply-text">Auto-apply safe actions</span>
+        <div class="toggle" id="autoApplyToggle" onclick="toggleAutoApply()">
+          <div class="toggle-thumb"></div>
+        </div>
+      </label>
+      <div class="live-chip" id="liveChip">
         <span class="live-dot"></span>
-        <span>Live</span>
+        <span id="liveLabel">Ready</span>
       </div>
-      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">☀ Light</button>
+      <button class="hdr-btn" id="themeBtn" onclick="toggleTheme()">☀</button>
     </div>
   </header>
 
-  <!-- KPI BAR -->
-  <section class="kpi-bar">
-    <div class="kpi-card">
-      <div class="kpi-label">Total Spend</div>
-      <div class="kpi-value" id="kpiTotalSpend">$0.00</div>
-      <div class="kpi-sub" id="kpiSpendRate">$0.00/min</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Requests</div>
-      <div class="kpi-value" id="kpiRequests">0</div>
-      <div class="kpi-sub" id="kpiReqRate">0 req/min</div>
-    </div>
-    <div class="kpi-card" id="kpiAnomalyCard">
-      <div class="kpi-label">Active Anomalies</div>
-      <div class="kpi-value" id="kpiAnomalies">0</div>
-      <div class="kpi-sub">Policies violated</div>
-    </div>
-    <div class="kpi-card kpi-success">
-      <div class="kpi-label">Savings Captured</div>
-      <div class="kpi-value" id="kpiSavings">$0.00</div>
-      <div class="kpi-sub" id="kpiSavingsPct">0% of spend</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Cache Hit Rate</div>
-      <div class="kpi-value" id="kpiCacheRate">0%</div>
-      <div class="kpi-sub" id="kpiCacheHits">0 hits</div>
-    </div>
-  </section>
+  <!-- BODY -->
+  <div class="app-body">
 
-  <!-- SCENARIO RUNNER -->
-  <section class="scenario-runner">
-    <div class="scenario-runner-label">SCENARIO RUNNER</div>
-    <div class="scenario-btns">
-      <button class="scenario-btn bloat" onclick="Scenarios.triggerPromptBloat()">
-        <span>📄</span>
-        <span>Prompt Bloat</span>
-        <span class="scenario-tag">Doc Summarizer</span>
-      </button>
-      <button class="scenario-btn routing" onclick="Scenarios.triggerPremiumOverrouting()">
-        <span>⚡</span>
-        <span>Premium Over-routing</span>
-        <span class="scenario-tag">Support Copilot</span>
-      </button>
-      <button class="scenario-btn retry-storm" onclick="Scenarios.triggerRetryStorm()">
-        <span>🔄</span>
-        <span>Retry Storm</span>
-        <span class="scenario-tag">Proposal Assistant</span>
-      </button>
-      <button class="scenario-btn reset-btn" onclick="Scenarios.reset()">
-        <span>↺</span>
-        <span>Reset</span>
-      </button>
-    </div>
-    <div class="scenario-status-bar" id="scenarioStatusBar"></div>
-  </section>
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sb-label">WORKFLOWS</div>
 
-  <!-- MAIN CONTENT -->
-  <div class="main-grid">
-
-    <!-- Live Request Stream -->
-    <section class="panel">
-      <div class="panel-header">
-        <h2>Live Request Stream</h2>
-        <span class="panel-badge" id="reqCount">0 requests</span>
+      <!-- Support Copilot -->
+      <div class="wf-card" id="card-support-copilot">
+        <div class="wf-card-top">
+          <span class="wf-icon">💬</span>
+          <div class="wf-meta">
+            <div class="wf-name">Support Copilot</div>
+            <div class="wf-owner">team-support · support-ops</div>
+          </div>
+          <span class="wf-dot idle" id="dot-support-copilot"></span>
+        </div>
+        <div class="wf-badge idle" id="badge-support-copilot">IDLE</div>
+        <div class="wf-stats" id="stats-support-copilot">—</div>
+        <button class="wf-btn" id="btn-support-copilot"
+                onclick="WorkflowEngine.toggle('support-copilot')">▶ Run Workflow</button>
       </div>
-      <div class="req-table-wrap">
-        <table class="req-table">
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>Use Case</th>
-              <th>Model</th>
-              <th>Tokens</th>
-              <th>Cost</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="reqTableBody"></tbody>
-        </table>
-      </div>
-    </section>
 
-    <!-- Agent Console -->
-    <section class="panel">
-      <div class="panel-header">
-        <h2>Agent Console</h2>
-        <span class="agent-status-chip" id="agentChip">
-          <span class="chip-dot"></span>Monitoring
-        </span>
+      <!-- Document Assistant -->
+      <div class="wf-card" id="card-doc-summarizer">
+        <div class="wf-card-top">
+          <span class="wf-icon">📄</span>
+          <div class="wf-meta">
+            <div class="wf-name">Document Assistant</div>
+            <div class="wf-owner">team-docs · content-ops</div>
+          </div>
+          <span class="wf-dot idle" id="dot-doc-summarizer"></span>
+        </div>
+        <div class="wf-badge idle" id="badge-doc-summarizer">IDLE</div>
+        <div class="wf-stats" id="stats-doc-summarizer">—</div>
+        <button class="wf-btn" id="btn-doc-summarizer"
+                onclick="WorkflowEngine.toggle('doc-summarizer')">▶ Run Workflow</button>
       </div>
-      <div class="agent-log" id="agentLog">
-        <div class="agent-idle">
-          <div class="agent-idle-icon">🔍</div>
-          <div>Agent monitoring traffic. Trigger a scenario to see it in action.</div>
+
+      <!-- Proposal Assistant -->
+      <div class="wf-card" id="card-proposal-assistant">
+        <div class="wf-card-top">
+          <span class="wf-icon">📋</span>
+          <div class="wf-meta">
+            <div class="wf-name">Proposal Assistant</div>
+            <div class="wf-owner">team-sales · sales-enablement</div>
+          </div>
+          <span class="wf-dot idle" id="dot-proposal-assistant"></span>
+        </div>
+        <div class="wf-badge idle" id="badge-proposal-assistant">IDLE</div>
+        <div class="wf-stats" id="stats-proposal-assistant">—</div>
+        <button class="wf-btn" id="btn-proposal-assistant"
+                onclick="WorkflowEngine.toggle('proposal-assistant')">▶ Run Workflow</button>
+      </div>
+
+      <div class="sb-divider"></div>
+      <div class="sb-label">POLICIES</div>
+
+      <div class="policy-row">
+        <span class="policy-dot ok" id="pdot-DOC-COST-001"></span>
+        <div>
+          <div class="policy-id">DOC-COST-001</div>
+          <div class="policy-desc">Max $0.08/summarization req</div>
         </div>
       </div>
-    </section>
-
-  </div>
-
-  <!-- ANALYSIS ROW -->
-  <div class="analysis-grid">
-
-    <!-- Spend by Use Case -->
-    <section class="panel">
-      <div class="panel-header"><h2>Spend by Use Case</h2></div>
-      <div class="bar-section" id="spendBars">
-        <div class="empty-state">Waiting for traffic…</div>
+      <div class="policy-row">
+        <span class="policy-dot ok" id="pdot-ROUTE-COST-002"></span>
+        <div>
+          <div class="policy-id">ROUTE-COST-002</div>
+          <div class="policy-desc">Model must match complexity</div>
+        </div>
       </div>
-    </section>
-
-    <!-- Model Distribution -->
-    <section class="panel">
-      <div class="panel-header"><h2>Model Distribution</h2></div>
-      <div class="bar-section" id="modelBars">
-        <div class="empty-state">Waiting for traffic…</div>
+      <div class="policy-row">
+        <span class="policy-dot ok" id="pdot-RETRY-GUARD-001"></span>
+        <div>
+          <div class="policy-id">RETRY-GUARD-001</div>
+          <div class="policy-desc">Max 3 retries per request</div>
+        </div>
       </div>
-    </section>
 
-    <!-- Interventions -->
-    <section class="panel">
-      <div class="panel-header"><h2>Interventions</h2></div>
-      <div class="intervention-list" id="interventionList">
-        <div class="empty-state">No interventions yet</div>
+      <div class="sb-divider"></div>
+      <button class="reset-btn" onclick="App.reset()">↺ Reset Session</button>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+
+      <!-- TAB: OPERATIONS -->
+      <div class="tab-panel active" id="tab-operations">
+        <div class="kpi-row">
+          <div class="kpi">
+            <div class="kpi-lbl">Total Spend</div>
+            <div class="kpi-val" id="kpiSpend">$0.00</div>
+            <div class="kpi-sub" id="kpiReqRate">0 req/min</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-lbl">Requests</div>
+            <div class="kpi-val" id="kpiReqs">0</div>
+            <div class="kpi-sub" id="kpiCacheRate">0% cache</div>
+          </div>
+          <div class="kpi kpi-warn" id="kpiAlertCard" onclick="UI.switchTab('agent')" style="cursor:pointer">
+            <div class="kpi-lbl">Policy Alerts</div>
+            <div class="kpi-val" id="kpiAlerts">0</div>
+            <div class="kpi-sub">Click to inspect →</div>
+          </div>
+          <div class="kpi kpi-green">
+            <div class="kpi-lbl">Savings Captured</div>
+            <div class="kpi-val" id="kpiSavings">$0.00</div>
+            <div class="kpi-sub" id="kpiSavingsPct">—</div>
+          </div>
+        </div>
+
+        <div class="ops-grid">
+          <div class="panel">
+            <div class="panel-hdr">
+              <h2>Live Request Stream</h2>
+              <span class="panel-badge" id="streamCount">0 requests</span>
+            </div>
+            <div class="tbl-wrap">
+              <table class="req-tbl">
+                <thead><tr>
+                  <th>Time</th><th>Workflow</th><th>Model</th>
+                  <th>Tokens</th><th>Cost</th><th>Status</th><th></th>
+                </tr></thead>
+                <tbody id="reqBody">
+                  <tr><td colspan="7" class="empty-cell">Run a workflow to see live requests</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-hdr"><h2>Active Alerts</h2></div>
+            <div id="alertsList"><div class="empty-cell" style="padding:18px">No alerts</div></div>
+          </div>
+        </div>
       </div>
-    </section>
 
-  </div>
+      <!-- TAB: AGENT CONSOLE -->
+      <div class="tab-panel" id="tab-agent">
+        <div class="agent-toolbar">
+          <span class="agent-toolbar-lbl">Agent observing all running workflows</span>
+          <label class="inline-toggle">
+            <input type="checkbox" id="autoApplyCb" onchange="toggleAutoApply()">
+            <span>Auto-apply safe actions</span>
+          </label>
+        </div>
+        <div class="agent-feed" id="agentFeed">
+          <div class="agent-idle">
+            <div class="agent-idle-ico">🔍</div>
+            <div>Start a workflow to see the agent in action.</div>
+          </div>
+        </div>
+      </div>
 
-  <!-- EXECUTIVE SUMMARY -->
-  <section class="panel exec-panel">
-    <div class="panel-header">
-      <h2>Executive Summary</h2>
-      <span class="panel-badge">Live</span>
+      <!-- TAB: EXECUTIVE IMPACT -->
+      <div class="tab-panel" id="tab-executive">
+        <div id="execContent">
+          <div class="exec-empty">
+            <div style="font-size:32px;margin-bottom:10px">📊</div>
+            <div>Run a workflow and approve an optimization to see the impact summary.</div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div><!-- /app-body -->
+
+  <!-- DRAWER -->
+  <div class="drawer" id="drawer">
+    <div class="drawer-hdr">
+      <span id="drawerTitle">Inspection</span>
+      <button class="drawer-close" onclick="Drawer.close()">✕</button>
     </div>
-    <div class="exec-content" id="execContent">
-      <div class="empty-state">Summary will appear once traffic is established.</div>
-    </div>
-  </section>
+    <div class="drawer-body" id="drawerBody"></div>
+  </div>
+  <div class="drawer-scrim" id="drawerScrim" onclick="Drawer.close()"></div>
 
-  <footer class="app-footer">
-    <span>TokenOps Agent v1.0 — Prototype</span>
-    <span>Simulated environment · not connected to production APIs</span>
-  </footer>
-
-  <script src="app.js"></script>
+</div><!-- /app -->
+<script src="app.js"></script>
 </body>
 </html>
