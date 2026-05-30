@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TokenOps Agent — AI Cost Intelligence</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="app-header">
+    <div class="header-brand">
+      <div class="brand-icon">⬡</div>
+      <div>
+        <div class="brand-name">TokenOps Agent</div>
+        <div class="brand-sub">AI Cost Intelligence Platform</div>
+      </div>
+    </div>
+    <div class="header-controls">
+      <div class="live-indicator">
+        <span class="live-dot"></span>
+        <span>Live</span>
+      </div>
+      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">☀ Light</button>
+    </div>
+  </header>
+
+  <!-- KPI BAR -->
+  <section class="kpi-bar">
+    <div class="kpi-card">
+      <div class="kpi-label">Total Spend</div>
+      <div class="kpi-value" id="kpiTotalSpend">$0.00</div>
+      <div class="kpi-sub" id="kpiSpendRate">$0.00/min</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Requests</div>
+      <div class="kpi-value" id="kpiRequests">0</div>
+      <div class="kpi-sub" id="kpiReqRate">0 req/min</div>
+    </div>
+    <div class="kpi-card" id="kpiAnomalyCard">
+      <div class="kpi-label">Active Anomalies</div>
+      <div class="kpi-value" id="kpiAnomalies">0</div>
+      <div class="kpi-sub">Policies violated</div>
+    </div>
+    <div class="kpi-card kpi-success">
+      <div class="kpi-label">Savings Captured</div>
+      <div class="kpi-value" id="kpiSavings">$0.00</div>
+      <div class="kpi-sub" id="kpiSavingsPct">0% of spend</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Cache Hit Rate</div>
+      <div class="kpi-value" id="kpiCacheRate">0%</div>
+      <div class="kpi-sub" id="kpiCacheHits">0 hits</div>
+    </div>
+  </section>
+
+  <!-- SCENARIO RUNNER -->
+  <section class="scenario-runner">
+    <div class="scenario-runner-label">SCENARIO RUNNER</div>
+    <div class="scenario-btns">
+      <button class="scenario-btn bloat" onclick="Scenarios.triggerPromptBloat()">
+        <span>📄</span>
+        <span>Prompt Bloat</span>
+        <span class="scenario-tag">Doc Summarizer</span>
+      </button>
+      <button class="scenario-btn routing" onclick="Scenarios.triggerPremiumOverrouting()">
+        <span>⚡</span>
+        <span>Premium Over-routing</span>
+        <span class="scenario-tag">Support Copilot</span>
+      </button>
+      <button class="scenario-btn retry-storm" onclick="Scenarios.triggerRetryStorm()">
+        <span>🔄</span>
+        <span>Retry Storm</span>
+        <span class="scenario-tag">Proposal Assistant</span>
+      </button>
+      <button class="scenario-btn reset-btn" onclick="Scenarios.reset()">
+        <span>↺</span>
+        <span>Reset</span>
+      </button>
+    </div>
+    <div class="scenario-status-bar" id="scenarioStatusBar"></div>
+  </section>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-grid">
+
+    <!-- Live Request Stream -->
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Live Request Stream</h2>
+        <span class="panel-badge" id="reqCount">0 requests</span>
+      </div>
+      <div class="req-table-wrap">
+        <table class="req-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Use Case</th>
+              <th>Model</th>
+              <th>Tokens</th>
+              <th>Cost</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="reqTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Agent Console -->
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Agent Console</h2>
+        <span class="agent-status-chip" id="agentChip">
+          <span class="chip-dot"></span>Monitoring
+        </span>
+      </div>
+      <div class="agent-log" id="agentLog">
+        <div class="agent-idle">
+          <div class="agent-idle-icon">🔍</div>
+          <div>Agent monitoring traffic. Trigger a scenario to see it in action.</div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ANALYSIS ROW -->
+  <div class="analysis-grid">
+
+    <!-- Spend by Use Case -->
+    <section class="panel">
+      <div class="panel-header"><h2>Spend by Use Case</h2></div>
+      <div class="bar-section" id="spendBars">
+        <div class="empty-state">Waiting for traffic…</div>
+      </div>
+    </section>
+
+    <!-- Model Distribution -->
+    <section class="panel">
+      <div class="panel-header"><h2>Model Distribution</h2></div>
+      <div class="bar-section" id="modelBars">
+        <div class="empty-state">Waiting for traffic…</div>
+      </div>
+    </section>
+
+    <!-- Interventions -->
+    <section class="panel">
+      <div class="panel-header"><h2>Interventions</h2></div>
+      <div class="intervention-list" id="interventionList">
+        <div class="empty-state">No interventions yet</div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- EXECUTIVE SUMMARY -->
+  <section class="panel exec-panel">
+    <div class="panel-header">
+      <h2>Executive Summary</h2>
+      <span class="panel-badge">Live</span>
+    </div>
+    <div class="exec-content" id="execContent">
+      <div class="empty-state">Summary will appear once traffic is established.</div>
+    </div>
+  </section>
+
+  <footer class="app-footer">
+    <span>TokenOps Agent v1.0 — Prototype</span>
+    <span>Simulated environment · not connected to production APIs</span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
