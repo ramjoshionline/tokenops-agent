@@ -98,10 +98,3 @@ The path forward is not to jump straight from concept to enterprise-wide mandate
 That's also the bigger lesson. In AI product management, the highest-leverage work is often not inventing one more AI feature. It's creating the mechanism that makes AI **economically rational, governable, and scalable** across the portfolio.
 
 ---
-
-
----
-
-`AI FinOps` · `Agent Governance` · `Product Thinking` · `Token Economics` · `Enterprise AI`
-
-[github.com/ramjoshionline](https://github.com/ramjoshionline)
