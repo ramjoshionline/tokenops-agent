@@ -8,8 +8,6 @@
 
 ## The TokenOps Agent: from board-level token anxiety to a real operating product
 
-*Ram Joshi · Munich, Germany · AI Product Management*
-
 AI costs are now volatile enough to reach the boardroom. But the real issue is rarely model pricing alone — it's operational. Most companies have no shared mechanism to decide when expensive intelligence is justified, how token usage should be governed, or how AI spend connects back to margin and business value.
 
 ---
@@ -130,7 +128,7 @@ This concept demonstrates several traits that matter in senior AI product leader
 
 ---
 
-## What comes next
+## What can comes next
 
 The path forward is not to jump straight from concept to enterprise-wide mandate. The right sequence is: **prototype the supervisory agent**, validate that it surfaces real savings and decision value, then harden it into a pilot-ready layer with stronger integrations, governance, and operational ownership.
 
@@ -160,15 +158,6 @@ Open `tokenops-agent.html` directly in any browser — no server or install need
 
 ---
 
-## Repo contents
-
-| File | Description |
-|---|---|
-| `tokenops-agent.html` | **Start here** — standalone interactive demo, everything bundled |
-| `index.html` | App structure |
-| `styles.css` | Full dark/light theme |
-| `app.js` | Simulation engine, agent logic, approval flows, UI |
-| `blog.html` | Long-form product thinking behind the concept |
 
 ---
 
