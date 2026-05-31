@@ -1,16 +1,4 @@
-# TokenOps Agent
-
-**AI Cost Intelligence Platform** · AI FinOps · Agent Governance
-
-> *"The TokenOps Agent is the finance-and-governance copilot for enterprise AI — ensuring every token spent is observable, justified, and optimized."*
-
----
-
-## The TokenOps Agent: from board-level token anxiety to a real operating product
-
-AI costs are now volatile enough to reach the boardroom. But the real issue is rarely model pricing alone — it's operational. Most companies have no shared mechanism to decide when expensive intelligence is justified, how token usage should be governed, or how AI spend connects back to margin and business value.
-
----
+**AI Cost Intelligence Agent**
 
 ## Why this idea exists
 
@@ -75,34 +63,20 @@ Several of these levers are already proven patterns in the market. Semantic cach
 
 ---
 
-## The PM thought process behind it
+## Thought process behind it
 
 What matters most here is not only the architecture but the **product judgment** used to shape it. The thought process followed five steps.
 
-**1. Start with the board-level pain, not the technical fascination**
-The initial signal was economic: token cost had become significant enough to matter to leadership. That immediately changes the framing from "interesting AI infrastructure" to "management problem with financial consequences."
+1. The initial signal was economic: token cost had become significant enough to matter to leadership. That immediately changes the framing from “interesting AI infrastructure” to “management problem with financial consequences.”
 
-**2. Reframe from cost optimization to operating model**
-Instead of treating this as prompt engineering or procurement, the stronger view is that enterprises need a shared operating layer for AI cost decisions — a Product OS mindset focused on repeatable mechanisms, not ad hoc heroics.
+2. Instead of treating cost optimization as prompt engineering or procurement, the stronger view is that enterprises need a shared operating layer for AI cost decisions.
 
-**3. Define the smallest lovable slice**
-Rather than trying to build the full enterprise platform immediately, the first cut was a real agent prototype in a sandbox — demoable as a standalone product experience that genuinely monitors, diagnoses, and acts.
+3. Rather than trying to build the full enterprise platform immediately, the first cut was a real agent prototype in a sandbox - demoable as a standalone product experience that genuinely monitors, diagnoses, and acts.
 
-**4. Optimize for pull, not push**
-A group-level platform wins only if product teams feel that plugging into it makes them faster, safer, or more profitable. The prototype was designed to make value obvious through visible savings, clearer decisions, and operational control.
+4. The prototype was designed to make value obvious through visible savings, clearer decisions, and operational control.
 
-**5. Translate technical behavior into business language**
-A strong AI product doesn't stop at logs and traces. It expresses outcomes in terms leaders care about: cost per workflow, margin pressure avoided, policy risk managed, investment decisions improved.
+5. Product expresses outcomes in terms leaders care about: cost per workflow, margin pressure avoided, policy risk managed, investment decisions improved.
 
----
-
-## Why the prototype matters
-
-A lot of AI work fails at the "interesting concept" stage because stakeholders never see how the thing would actually operate. That's why the TokenOps Agent was deliberately defined as an interactive interface rather than an animated presentation.
-
-The demo pattern is intentionally simple: the user does something in the product, the agent automatically responds, and the impact becomes visible inside the same interface. That approach proves not only the concept, but the usability and operational logic of the category.
-
-> **The distinction that matters:** If a prototype only tells a story, it is a demo. If it actually observes, decides, and changes state, it is already a real agent in prototype form.
 
 ---
 
@@ -116,45 +90,11 @@ The demo pattern is intentionally simple: the user does something in the product
 
 ---
 
-## What this showcases as AI product work
-
-This concept demonstrates several traits that matter in senior AI product leadership:
-
-- **Strategic reframing:** taking a noisy cost symptom and defining the deeper operating problem behind it.
-- **Product scoping:** identifying the smallest prototype that can credibly validate the concept without depending on full enterprise rollout.
-- **Cross-functional judgment:** designing something that matters simultaneously to product, engineering, finance, governance, and leadership.
-- **Operational thinking:** focusing on decision quality, accountability, and on-the-ground mechanisms rather than abstract innovation language.
-- **Narrative control:** turning a technical architecture into a business case, a product definition, a demo flow, and a scalable operating model.
-
----
-
 ## What can comes next
 
 The path forward is not to jump straight from concept to enterprise-wide mandate. The right sequence is: **prototype the supervisory agent**, validate that it surfaces real savings and decision value, then harden it into a pilot-ready layer with stronger integrations, governance, and operational ownership.
 
 That's also the bigger lesson. In AI product management, the highest-leverage work is often not inventing one more AI feature. It's creating the mechanism that makes AI **economically rational, governable, and scalable** across the portfolio.
-
----
-
-## Running the prototype
-
-Open `tokenops-agent.html` directly in any browser — no server or install needed.
-
-### Demo flow
-
-1. **Click "▶ Run Workflow"** on any workflow card in the sidebar to start live traffic
-2. **Click a flagged request row** (amber) to open the inspection drawer — see token breakdown, cost overage, and agent diagnosis
-3. **Go to Agent Console tab** — approve or reject the agent's recommendation
-4. **Toggle "Auto-apply safe actions"** in the header to see autonomous interventions fire without approval
-5. **Open Executive Impact tab** after an optimization is applied — before/after cost comparison and plain-language narrative
-
-### Three scenarios
-
-| Workflow | Scenario | Agent response |
-|---|---|---|
-| Document Assistant | Prompt bloat — full doc bodies exceed token ceiling | Recommends context pruning (requires approval) |
-| Support Copilot | Premium over-routing — Opus used for FAQ traffic | Auto-applies model downgrade to Haiku |
-| Proposal Assistant | Retry storm — tool timeout loops | Autonomously engages circuit breaker |
 
 ---
 
