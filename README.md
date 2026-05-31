@@ -1,4 +1,5 @@
-**AI Cost Intelligence Agent**
+## AI Cost Intelligence Agent
+---
 
 ## Why this idea exists
 
